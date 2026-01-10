@@ -1,4 +1,22 @@
 import express, { Request, Response, NextFunction } from 'express';
+import { Socket } from 'socket.io';
+
+// Extend Express Request type
+declare global {
+  namespace Express {
+    interface Request {
+      id?: string;
+      userId?: string;
+      userRole?: string;
+    }
+  }
+}
+
+// Extend Socket.IO Socket type
+interface CustomSocket extends Socket {
+  userId?: string;
+  userRole?: string;
+}
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -36,14 +54,7 @@ export interface ApiGatewayConfig {
   };
 }
 
-export interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    role: string;
-    permissions: string[];
-  };
-}
+// AuthenticatedRequest removed - Request is extended globally above
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -266,7 +277,7 @@ export class ApiGateway {
   }
 
   private setupWebSocket(): void {
-    this.io.use(async (socket, next) => {
+    this.io.use(async (socket: CustomSocket, next) => {
       try {
         const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.replace('Bearer ', '');
         
@@ -284,7 +295,7 @@ export class ApiGateway {
       }
     });
 
-    this.io.on('connection', (socket) => {
+    this.io.on('connection', (socket: CustomSocket) => {
       logger.info('WebSocket connection established', {
         socketId: socket.id,
         userId: socket.userId
@@ -303,9 +314,9 @@ export class ApiGateway {
       });
 
       // Handle real-time subscriptions
-      socket.on('subscribe:campaigns', (data) => {
+      socket.on('subscribe:campaigns', (data: any) => {
         if (data.campaignIds && Array.isArray(data.campaignIds)) {
-          data.campaignIds.forEach(id => socket.join(`campaign:${id}`));
+          data.campaignIds.forEach((id: any) => socket.join(`campaign:${id}`));
         }
       });
 

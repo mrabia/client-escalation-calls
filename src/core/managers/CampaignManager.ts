@@ -343,7 +343,7 @@ export class CampaignManager {
         status: 'running',
         context: {
           paymentRecordId: request.paymentRecordId,
-          customerContext: context,
+          customerContext: context || undefined,
           startedAt: new Date()
         }
       };
@@ -413,7 +413,7 @@ export class CampaignManager {
     // Adjust based on payment patterns
     if (context.behaviorAnalysis?.paymentPatterns) {
       const hasLatePattern = context.behaviorAnalysis.paymentPatterns.some(
-        p => p.pattern === 'late' && p.frequency > 0.5
+        (p: any) => p.pattern === 'late' && p.frequency > 0.5
       );
 
       if (hasLatePattern) {
@@ -814,7 +814,7 @@ export class CampaignManager {
         campaignId: campaign.id,
         paymentRecordId: execution.context.paymentRecordId,
         previousAttempts: [],
-        customerContext: context,
+        customerContext: context || undefined,
         messageTemplate: step.template,
         metadata: this.buildTaskMetadata(step, customer, paymentRecord, context)
       },
@@ -864,7 +864,7 @@ export class CampaignManager {
       (Date.now() - new Date(paymentRecord.dueDate).getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    const metadata = {
+    const metadata: any = {
       template: step.template,
       variables: {
         contactName: customer.contactName,
@@ -878,7 +878,8 @@ export class CampaignManager {
         paymentLink: `${process.env.BASE_URL}/pay/${paymentRecord.id}`,
         settlementAmount: Math.round(paymentRecord.amount * 0.8), // 20% discount
         discount: 20,
-        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()
+        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+        customMessage: undefined as string | undefined
       }
     };
 
@@ -898,7 +899,7 @@ export class CampaignManager {
 
     // Add context-based customizations
     if (context?.recommendations?.length > 0) {
-      const commRec = context.recommendations.find(r => r.type === 'communication');
+      const commRec = context.recommendations.find((r: any) => r.type === 'communication');
       if (commRec) {
         metadata.variables.customMessage = commRec.action;
       }
@@ -1143,15 +1144,15 @@ export class CampaignManager {
 
   async getActiveCampaigns(): Promise<any[]> {
     return Array.from(this.activeExecutions.entries()).map(([campaignId, execution]) => ({
-      campaignId,
-      ...execution
+      ...execution,
+      campaignId
     }));
   }
 
   async getManagerMetrics(): Promise<any> {
     const metrics = await this.redisService.getJson('campaign_manager:metrics');
     return {
-      ...metrics,
+      ...(metrics || {}),
       activeExecutions: this.activeExecutions.size,
       isRunning: this.isRunning
     };
