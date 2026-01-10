@@ -1,4 +1,4 @@
-import amqp, { Connection, Channel, ConsumeMessage } from 'amqplib';
+import amqp, { Connection, Channel } from 'amqplib';
 import { logger } from '@/utils/logger';
 
 export interface QueueMessage {
@@ -41,8 +41,9 @@ export class MessageQueueService {
 
     try {
       // Connect to RabbitMQ
-      this.connection = await amqp.connect(process.env.RABBITMQ_URL || 'amqp://localhost:5672');
-      this.channel = await this.connection.createChannel();
+      const conn = await amqp.connect(process.env.RABBITMQ_URL || 'amqp://localhost:5672');
+      this.connection = conn as any;
+      this.channel = await conn.createChannel();
 
       // Set up connection error handlers
       this.connection.on('error', (error) => {
@@ -194,7 +195,7 @@ export class MessageQueueService {
             messageId: msg.properties.messageId
           });
 
-          await this.handleMessageError(msg, error);
+          await this.handleMessageError(msg, error instanceof Error ? error : new Error(String(error)));
         }
       });
 
@@ -341,7 +342,7 @@ export class MessageQueueService {
       }
       
       if (this.connection) {
-        await this.connection.close();
+        await (this.connection as any).close();
       }
       
       this.isInitialized = false;
