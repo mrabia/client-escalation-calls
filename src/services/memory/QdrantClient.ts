@@ -1,5 +1,5 @@
 import { QdrantClient as Qdrant } from '@qdrant/js-client-rest';
-import { Logger } from '@/utils/logger';
+import { createLogger } from '@/utils/logger';
 
 /**
  * Qdrant Vector Database Client
@@ -14,7 +14,7 @@ export class QdrantClient {
   constructor() {
     this.url = process.env.QDRANT_URL || 'http://localhost:6333';
     this.client = new Qdrant({ url: this.url });
-    this.logger = new Logger('QdrantClient');
+    this.logger = createLogger('QdrantClient');
   }
 
   /**

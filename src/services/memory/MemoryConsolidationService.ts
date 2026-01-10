@@ -1,7 +1,7 @@
 import { MemoryManager } from './MemoryManager';
 import { LongTermMemory } from './LongTermMemory';
 import { LLMService } from '../llm/LLMService';
-import { Logger } from '@/utils/logger';
+import { createLogger } from '@/utils/logger';
 
 /**
  * Memory Consolidation Service
@@ -23,7 +23,7 @@ export class MemoryConsolidationService {
     this.memoryManager = new MemoryManager();
     this.longTermMemory = new LongTermMemory();
     this.llmService = new LLMService();
-    this.logger = new Logger('MemoryConsolidationService');
+    this.logger = createLogger('MemoryConsolidationService');
   }
 
   /**

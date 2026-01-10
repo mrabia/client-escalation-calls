@@ -5,7 +5,7 @@ import { EmailGenerationService } from '@/services/llm/EmailGenerationService';
 import { DatabaseService } from '@/core/services/database';
 import { RedisService } from '@/core/services/redis';
 import { MessageQueueService } from '@/core/services/messageQueue';
-import { Logger } from '@/utils/logger';
+import { createLogger } from '@/utils/logger';
 import { Task, Customer } from '@/types';
 
 /**
@@ -35,7 +35,7 @@ export class EmailAgentEnhanced extends EmailAgent {
     this.agenticRAG = new AgenticRAGService();
     this.memoryManager = new MemoryManager();
     this.emailGeneration = new EmailGenerationService();
-    this.logger = new Logger(`EmailAgentEnhanced-${agentId}`);
+    this.logger = createLogger(`EmailAgentEnhanced-${agentId}`);
   }
 
   /**

@@ -1,5 +1,5 @@
 import { createClient, RedisClientType } from 'redis';
-import { Logger } from '@/utils/logger';
+import { createLogger } from '@/utils/logger';
 import { Message } from '@/types';
 
 /**
@@ -32,7 +32,7 @@ export class ShortTermMemory {
   constructor() {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
     this.client = createClient({ url: redisUrl });
-    this.logger = new Logger('ShortTermMemory');
+    this.logger = createLogger('ShortTermMemory');
 
     // Setup error handling
     this.client.on('error', (err) => {

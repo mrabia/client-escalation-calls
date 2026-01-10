@@ -1,6 +1,6 @@
 import { QdrantClient } from './QdrantClient';
 import { EmbeddingService } from './EmbeddingService';
-import { Logger } from '@/utils/logger';
+import { createLogger } from '@/utils/logger';
 import { Message } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -93,7 +93,7 @@ export class LongTermMemory {
   constructor() {
     this.qdrant = new QdrantClient();
     this.embedding = new EmbeddingService();
-    this.logger = new Logger('LongTermMemory');
+    this.logger = createLogger('LongTermMemory');
   }
 
   /**

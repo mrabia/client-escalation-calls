@@ -2,7 +2,7 @@ import { PhoneAgent } from './PhoneAgent';
 import { AgenticRAGService } from '@/services/memory/AgenticRAGService';
 import { MemoryManager } from '@/services/memory/MemoryManager';
 import { ConversationService } from '@/services/llm/ConversationService';
-import { Logger } from '@/utils/logger';
+import { createLogger } from '@/utils/logger';
 
 /**
  * Enhanced Phone Agent with Agentic RAG capabilities
@@ -25,7 +25,7 @@ export class PhoneAgentEnhanced extends PhoneAgent {
     this.agenticRAG = new AgenticRAGService();
     this.memoryManager = new MemoryManager();
     this.conversationService = new ConversationService();
-    this.logger = new Logger(`PhoneAgentEnhanced-${agentId}`);
+    this.logger = createLogger(`PhoneAgentEnhanced-${agentId}`);
   }
 
   /**

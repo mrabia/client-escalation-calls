@@ -1,7 +1,7 @@
 import { SmsAgent } from './SmsAgent';
 import { AgenticRAGService } from '@/services/memory/AgenticRAGService';
 import { MemoryManager } from '@/services/memory/MemoryManager';
-import { Logger } from '@/utils/logger';
+import { createLogger } from '@/utils/logger';
 
 /**
  * Enhanced SMS Agent with Agentic RAG capabilities
@@ -22,7 +22,7 @@ export class SMSAgentEnhanced extends SmsAgent {
     
     this.agenticRAG = new AgenticRAGService();
     this.memoryManager = new MemoryManager();
-    this.logger = new Logger(`SMSAgentEnhanced-${agentId}`);
+    this.logger = createLogger(`SMSAgentEnhanced-${agentId}`);
   }
 
   /**

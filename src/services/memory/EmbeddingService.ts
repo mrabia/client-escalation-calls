@@ -1,5 +1,5 @@
 import { OpenAI } from 'openai';
-import { Logger } from '@/utils/logger';
+import { createLogger } from '@/utils/logger';
 import { Message } from '@/types';
 
 /**
@@ -20,7 +20,7 @@ export class EmbeddingService {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
     });
-    this.logger = new Logger('EmbeddingService');
+    this.logger = createLogger('EmbeddingService');
   }
 
   /**

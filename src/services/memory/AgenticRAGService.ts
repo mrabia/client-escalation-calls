@@ -1,6 +1,6 @@
 import { MemoryManager, MemoryQueryResult } from './MemoryManager';
 import { LLMService } from '../llm/LLMService';
-import { Logger } from '@/utils/logger';
+import { createLogger } from '@/utils/logger';
 import { Message } from '@/types';
 
 /**
@@ -81,7 +81,7 @@ export class AgenticRAGService {
   constructor() {
     this.memoryManager = new MemoryManager();
     this.llmService = new LLMService();
-    this.logger = new Logger('AgenticRAGService');
+    this.logger = createLogger('AgenticRAGService');
   }
 
   /**

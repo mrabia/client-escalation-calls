@@ -1,6 +1,6 @@
 import { ShortTermMemory, SessionContext } from './ShortTermMemory';
 import { LongTermMemory, EpisodicMemory, SemanticMemory } from './LongTermMemory';
-import { Logger } from '@/utils/logger';
+import { createLogger } from '@/utils/logger';
 import { Message } from '@/types';
 
 /**
@@ -91,7 +91,7 @@ export class MemoryManager {
   constructor() {
     this.shortTerm = new ShortTermMemory();
     this.longTerm = new LongTermMemory();
-    this.logger = new Logger('MemoryManager');
+    this.logger = createLogger('MemoryManager');
   }
 
   /**

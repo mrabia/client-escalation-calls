@@ -64,6 +64,13 @@ export const logger = winston.createLogger({
   exitOnError: false
 });
 
+/**
+ * Create a child logger with a specific label
+ */
+export function createLogger(label: string): winston.Logger {
+  return logger.child({ label });
+}
+
 // Create a stream for morgan HTTP logging
 export const loggerStream = {
   write: (message: string) => {
