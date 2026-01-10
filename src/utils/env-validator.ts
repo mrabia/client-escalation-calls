@@ -3,7 +3,8 @@
  * Validates required environment variables on application startup
  */
 
-import { logger } from './logger';
+// Removed logger dependency to avoid circular dependency issues
+// Logger will be initialized after environment validation
 
 interface EnvConfig {
   name: string;
@@ -55,10 +56,24 @@ const ENV_CONFIG: EnvConfig[] = [
   // Elasticsearch
   { name: 'ELASTICSEARCH_URL', required: false, defaultValue: 'http://localhost:9200' },
   
+  // AI & LLM
+  { name: 'OPENAI_API_KEY', required: false, description: 'OpenAI API key for GPT models' },
+  { name: 'ANTHROPIC_API_KEY', required: false, description: 'Anthropic API key for Claude models' },
+  { name: 'GOOGLE_AI_API_KEY', required: false, description: 'Google AI API key for Gemini models' },
+  
+  // Vector Database
+  { name: 'QDRANT_URL', required: false, defaultValue: 'http://localhost:6333', description: 'Qdrant vector database URL' },
+  { name: 'QDRANT_API_KEY', required: false, description: 'Qdrant API key (if using cloud)' },
+  
+  // Authentication (additional)
+  { name: 'JWT_REFRESH_SECRET', required: false, description: 'JWT refresh token secret (min 32 characters)' },
+  
   // Feature Flags
   { name: 'ENABLE_EMAIL_AGENT', required: false, defaultValue: 'true' },
   { name: 'ENABLE_PHONE_AGENT', required: false, defaultValue: 'true' },
   { name: 'ENABLE_SMS_AGENT', required: false, defaultValue: 'true' },
+  { name: 'ENABLE_AI_GENERATION', required: false, defaultValue: 'false' },
+  { name: 'ENABLE_VECTOR_MEMORY', required: false, defaultValue: 'false' },
 ];
 
 export class EnvValidator {
@@ -118,20 +133,21 @@ export class EnvValidator {
   
   /**
    * Log validation results
+   * Using console instead of logger to avoid circular dependency
    */
   private logResults(): void {
     if (this.warnings.length > 0) {
-      logger.warn('Environment validation warnings:');
-      this.warnings.forEach(warning => logger.warn(`  - ${warning}`));
+      console.warn('⚠️  Environment validation warnings:');
+      this.warnings.forEach(warning => console.warn(`  - ${warning}`));
     }
     
     if (this.errors.length > 0) {
-      logger.error('Environment validation errors:');
-      this.errors.forEach(error => logger.error(`  - ${error}`));
-      logger.error('\nPlease check your .env file or environment variables.');
-      logger.error('See .env.example for reference.\n');
+      console.error('❌ Environment validation errors:');
+      this.errors.forEach(error => console.error(`  - ${error}`));
+      console.error('\nPlease check your .env file or environment variables.');
+      console.error('See .env.example for reference.\n');
     } else {
-      logger.info('✓ Environment validation passed');
+      console.log('✅ Environment validation passed');
     }
   }
   
@@ -186,7 +202,7 @@ export function validateEnvironment(): void {
   const isValid = validator.validate();
   
   if (!isValid) {
-    logger.error('Environment validation failed. Exiting...');
+    console.error('❌ Environment validation failed. Exiting...');
     process.exit(1);
   }
 }
