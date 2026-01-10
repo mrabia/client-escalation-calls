@@ -157,16 +157,17 @@ Provide a structured analysis in JSON format:
       });
       
       // Calculate payment statistics
-      const avgDaysToPay = paymentHistory
-        .filter(p => p.daysToPay)
-        .reduce((sum, p) => sum + p.daysToPay, 0) / paymentHistory.length;
+      const paymentsWithDays = paymentHistory.filter(p => p.daysToPay);
+      const avgDaysToPay = paymentsWithDays.length > 0
+        ? paymentsWithDays.reduce((sum, p) => sum + p.daysToPay, 0) / paymentsWithDays.length
+        : 0;
       const onTimePayments = paymentHistory.filter(p => p.daysToPay <= 30).length;
       const latePayments = paymentHistory.filter(p => p.daysToPay > 30).length;
       
       prompt += `\nPayment Statistics:\n`;
       prompt += `- Average Days to Pay: ${avgDaysToPay.toFixed(1)} days\n`;
-      prompt += `- On-Time Payments: ${onTimePayments} (${((onTimePayments/paymentHistory.length)*100).toFixed(1)}%)\n`;
-      prompt += `- Late Payments: ${latePayments} (${((latePayments/paymentHistory.length)*100).toFixed(1)}%)\n`;
+      prompt += `- On-Time Payments: ${onTimePayments} (${paymentHistory.length > 0 ? ((onTimePayments/paymentHistory.length)*100).toFixed(1) : 0}%)\n`;
+      prompt += `- Late Payments: ${latePayments} (${paymentHistory.length > 0 ? ((latePayments/paymentHistory.length)*100).toFixed(1) : 0}%)\n`;
       prompt += `\n`;
     }
 
@@ -181,7 +182,9 @@ Provide a structured analysis in JSON format:
       });
       
       // Calculate communication statistics
-      const responseRate = (communicationHistory.filter(c => c.responded).length / communicationHistory.length) * 100;
+      const responseRate = communicationHistory.length > 0
+        ? (communicationHistory.filter(c => c.responded).length / communicationHistory.length) * 100
+        : 0;
       const commitmentsMade = communicationHistory.filter(c => c.commitmentMade).length;
       const commitmentsKept = communicationHistory.filter(c => c.commitmentKept).length;
       
