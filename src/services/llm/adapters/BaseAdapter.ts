@@ -150,7 +150,7 @@ export abstract class BaseAdapter implements ProviderAdapter {
   protected normalizeError(error: any): LLMError {
     const llmError: LLMError = {
       code: error.code || 'unknown_error',
-      message: error.message || 'An unknown error occurred',
+      message: error instanceof Error ? error.message : String(error) || 'An unknown error occurred',
       provider: this.provider,
       model: error.model,
       retryable: false,

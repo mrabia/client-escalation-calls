@@ -459,7 +459,7 @@ export class MetricsCollector {
       ]);
 
     } catch (error) {
-      logger.debug('Failed to store aggregated metrics (table may not exist):', error.message);
+      logger.debug('Failed to store aggregated metrics (table may not exist):', error instanceof Error ? error.message : String(error));
     }
   }
 

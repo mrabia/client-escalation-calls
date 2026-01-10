@@ -148,7 +148,7 @@ export class MessageQueueService {
     } catch (error) {
       logger.error('Failed to publish message:', {
         routingKey,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
       throw error;
     }
@@ -190,7 +190,7 @@ export class MessageQueueService {
         } catch (error) {
           logger.error('Error processing message:', {
             queue: queueName,
-            error: error.message,
+            error: error instanceof Error ? error.message : String(error),
             messageId: msg.properties.messageId
           });
 
@@ -233,13 +233,13 @@ export class MessageQueueService {
         // Send to dead letter queue
         await this.publish('dead-letter', {
           ...queueMessage,
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
           failedAt: new Date()
         });
 
         logger.error('Message sent to dead letter queue', {
           messageId: queueMessage.id,
-          error: error.message
+          error: error instanceof Error ? error.message : String(error)
         });
       }
 

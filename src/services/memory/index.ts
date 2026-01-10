@@ -19,7 +19,8 @@ export { MemoryConsolidationService } from './MemoryConsolidationService';
 // Type Exports
 export type {
   MemoryQueryResult,
-  SessionData
+  MemoryQueryOptions,
+  MemoryStorageOptions
 } from './MemoryManager';
 
 export type {

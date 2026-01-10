@@ -207,7 +207,7 @@ Please regenerate the email addressing these issues while maintaining the core m
       
       await this.recordContactAttempt(task, {
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         messageId: null
       });
 

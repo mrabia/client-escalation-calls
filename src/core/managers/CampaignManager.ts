@@ -614,7 +614,7 @@ export class CampaignManager {
         await this.mqService.publishNotification({
           type: 'campaign_error',
           campaignId,
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
           timestamp: new Date()
         });
       }

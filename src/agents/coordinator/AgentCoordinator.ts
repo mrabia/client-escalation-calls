@@ -185,7 +185,7 @@ export class AgentCoordinator {
     } catch (error) {
       logger.error('Failed to assign task:', {
         taskId: task.id,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
       throw error;
     }
@@ -307,7 +307,7 @@ export class AgentCoordinator {
       logger.error('Failed to assign task to agent:', {
         taskId: task.id,
         agentId: agent.id,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
       throw error;
     }
@@ -404,7 +404,7 @@ export class AgentCoordinator {
     } catch (error) {
       logger.error('Failed to complete task:', {
         taskId,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
       throw error;
     }
@@ -446,7 +446,7 @@ export class AgentCoordinator {
           taskId,
           attempts: task.attempts,
           maxAttempts: task.maxAttempts,
-          error: error.message
+          error: error instanceof Error ? error.message : String(error)
         });
       } else {
         // Mark as failed
@@ -456,7 +456,7 @@ export class AgentCoordinator {
         logger.error('Task permanently failed', {
           taskId,
           attempts: task.attempts,
-          error: error.message
+          error: error instanceof Error ? error.message : String(error)
         });
 
         this.metrics.tasksFailed++;
@@ -484,7 +484,7 @@ export class AgentCoordinator {
       this.io.emit('task:failed', {
         task,
         agent: agent ? { id: agent.id, type: agent.type } : null,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         willRetry: task.attempts < task.maxAttempts,
         timestamp: new Date()
       });
@@ -552,7 +552,7 @@ export class AgentCoordinator {
       } catch (error) {
         logger.error('Failed to process queued task:', {
           taskId: task.id,
-          error: error.message
+          error: error instanceof Error ? error.message : String(error)
         });
         
         // Put back in queue if it's a temporary error
@@ -636,7 +636,7 @@ export class AgentCoordinator {
     } catch (error) {
       logger.error('Failed to get task:', {
         taskId,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
       return null;
     }

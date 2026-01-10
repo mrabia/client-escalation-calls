@@ -50,7 +50,7 @@ router.post('/login', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     res.status(401).json({ 
-      error: error.message || 'Authentication failed',
+      error: error instanceof Error ? error.message : String(error) || 'Authentication failed',
     });
   }
 });
@@ -82,7 +82,7 @@ router.post('/refresh', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     res.status(401).json({ 
-      error: error.message || 'Token refresh failed',
+      error: error instanceof Error ? error.message : String(error) || 'Token refresh failed',
     });
   }
 });
@@ -106,7 +106,7 @@ router.post('/logout', authenticate, async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     res.status(500).json({ 
-      error: error.message || 'Logout failed',
+      error: error instanceof Error ? error.message : String(error) || 'Logout failed',
     });
   }
 });
@@ -148,7 +148,7 @@ router.get('/sessions', authenticate, async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     res.status(500).json({ 
-      error: error.message || 'Failed to get sessions',
+      error: error instanceof Error ? error.message : String(error) || 'Failed to get sessions',
     });
   }
 });
@@ -171,7 +171,7 @@ router.post('/revoke-all-sessions', authenticate, async (req: Request, res: Resp
     });
   } catch (error: any) {
     res.status(500).json({ 
-      error: error.message || 'Failed to revoke sessions',
+      error: error instanceof Error ? error.message : String(error) || 'Failed to revoke sessions',
     });
   }
 });

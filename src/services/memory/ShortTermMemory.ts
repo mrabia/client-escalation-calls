@@ -90,7 +90,7 @@ export class ShortTermMemory {
 
     } catch (error) {
       this.logger.error('Failed to store session', error);
-      throw new Error(`Session storage failed: ${error.message}`);
+      throw new Error(`Session storage failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -116,7 +116,7 @@ export class ShortTermMemory {
 
     } catch (error) {
       this.logger.error(`Failed to get session ${sessionId}`, error);
-      throw new Error(`Session retrieval failed: ${error.message}`);
+      throw new Error(`Session retrieval failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -141,7 +141,7 @@ export class ShortTermMemory {
 
     } catch (error) {
       this.logger.error(`Failed to update session ${sessionId}`, error);
-      throw new Error(`Session update failed: ${error.message}`);
+      throw new Error(`Session update failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -163,7 +163,7 @@ export class ShortTermMemory {
 
     } catch (error) {
       this.logger.error(`Failed to add message to session ${sessionId}`, error);
-      throw new Error(`Message addition failed: ${error.message}`);
+      throw new Error(`Message addition failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -177,7 +177,7 @@ export class ShortTermMemory {
 
     } catch (error) {
       this.logger.error(`Failed to get conversation history for ${sessionId}`, error);
-      throw new Error(`Conversation retrieval failed: ${error.message}`);
+      throw new Error(`Conversation retrieval failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -195,7 +195,7 @@ export class ShortTermMemory {
 
     } catch (error) {
       this.logger.error(`Failed to store key ${key}`, error);
-      throw new Error(`Storage failed: ${error.message}`);
+      throw new Error(`Storage failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -214,7 +214,7 @@ export class ShortTermMemory {
 
     } catch (error) {
       this.logger.error(`Failed to retrieve key ${key}`, error);
-      throw new Error(`Retrieval failed: ${error.message}`);
+      throw new Error(`Retrieval failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -228,7 +228,7 @@ export class ShortTermMemory {
 
     } catch (error) {
       this.logger.error(`Failed to delete key ${key}`, error);
-      throw new Error(`Deletion failed: ${error.message}`);
+      throw new Error(`Deletion failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -254,7 +254,7 @@ export class ShortTermMemory {
 
     } catch (error) {
       this.logger.error(`Failed to delete session ${sessionId}`, error);
-      throw new Error(`Session deletion failed: ${error.message}`);
+      throw new Error(`Session deletion failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -271,7 +271,7 @@ export class ShortTermMemory {
 
     } catch (error) {
       this.logger.error(`Failed to get sessions for customer ${customerId}`, error);
-      throw new Error(`Customer sessions retrieval failed: ${error.message}`);
+      throw new Error(`Customer sessions retrieval failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -285,7 +285,7 @@ export class ShortTermMemory {
 
     } catch (error) {
       this.logger.error(`Failed to check existence of key ${key}`, error);
-      throw new Error(`Existence check failed: ${error.message}`);
+      throw new Error(`Existence check failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -299,7 +299,7 @@ export class ShortTermMemory {
 
     } catch (error) {
       this.logger.error(`Failed to set expiration for key ${key}`, error);
-      throw new Error(`Expiration setting failed: ${error.message}`);
+      throw new Error(`Expiration setting failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -313,7 +313,7 @@ export class ShortTermMemory {
 
     } catch (error) {
       this.logger.error(`Failed to get TTL for key ${key}`, error);
-      throw new Error(`TTL retrieval failed: ${error.message}`);
+      throw new Error(`TTL retrieval failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -335,7 +335,7 @@ export class ShortTermMemory {
 
     } catch (error) {
       this.logger.error(`Failed to clear pattern ${pattern}`, error);
-      throw new Error(`Pattern clearing failed: ${error.message}`);
+      throw new Error(`Pattern clearing failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -364,7 +364,7 @@ export class ShortTermMemory {
 
     } catch (error) {
       this.logger.error('Failed to get stats', error);
-      throw new Error(`Stats retrieval failed: ${error.message}`);
+      throw new Error(`Stats retrieval failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -391,7 +391,7 @@ export class ShortTermMemory {
 
     } catch (error) {
       this.logger.error('Failed to flush all data', error);
-      throw new Error(`Flush failed: ${error.message}`);
+      throw new Error(`Flush failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 }

@@ -1,6 +1,9 @@
 import winston from 'winston';
 import path from 'path';
 
+// Export Logger type for use in other modules
+export type Logger = winston.Logger;
+
 const logDir = process.env.LOG_DIR || 'logs';
 const logLevel = process.env.LOG_LEVEL || 'info';
 

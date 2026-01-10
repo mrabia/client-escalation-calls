@@ -247,7 +247,7 @@ export class PhoneAgent {
       
       await this.recordContactAttempt(task, {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
 
       await this.updateTaskStatus(task.id, TaskStatus.FAILED);
@@ -316,14 +316,14 @@ export class PhoneAgent {
 
     } catch (error) {
       logger.error('Failed to make phone call:', {
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         customerId: customer.id,
         taskId: task.id
       });
       
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }

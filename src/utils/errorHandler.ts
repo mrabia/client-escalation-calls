@@ -78,13 +78,13 @@ export const errorHandler = (
 
   if ('statusCode' in error && 'isOperational' in error) {
     statusCode = error.statusCode;
-    message = error.message;
+    message = error instanceof Error ? error.message : String(error);
     isOperational = error.isOperational;
   }
 
   // Log the error
   logger.error('Error occurred:', {
-    error: error.message,
+    error: error instanceof Error ? error.message : String(error),
     stack: error.stack,
     statusCode,
     method: req.method,

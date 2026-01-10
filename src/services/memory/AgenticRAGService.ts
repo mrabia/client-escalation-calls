@@ -104,7 +104,7 @@ export class AgenticRAGService {
 
     } catch (error) {
       this.logger.error('Failed to initialize Agentic RAG service', error);
-      throw new Error(`Agentic RAG initialization failed: ${error.message}`);
+      throw new Error(`Agentic RAG initialization failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -190,7 +190,7 @@ export class AgenticRAGService {
 
     } catch (error) {
       this.logger.error('Agentic RAG execution failed', error);
-      throw new Error(`Agentic RAG execution failed: ${error.message}`);
+      throw new Error(`Agentic RAG execution failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 

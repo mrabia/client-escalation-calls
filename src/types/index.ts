@@ -376,3 +376,12 @@ export enum ComplianceAction {
   LOG_WARNING = 'log_warning',
   ESCALATE = 'escalate'
 }
+/**
+ * Message interface for conversation history
+ */
+export interface Message {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp?: Date;
+  metadata?: Record<string, any>;
+}

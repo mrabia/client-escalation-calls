@@ -52,7 +52,7 @@ export class EmbeddingService {
 
     } catch (error) {
       this.logger.error('Failed to generate embedding', error);
-      throw new Error(`Embedding generation failed: ${error.message}`);
+      throw new Error(`Embedding generation failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -120,7 +120,7 @@ export class EmbeddingService {
 
     } catch (error) {
       this.logger.error('Failed to generate batch embeddings', error);
-      throw new Error(`Batch embedding generation failed: ${error.message}`);
+      throw new Error(`Batch embedding generation failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -138,7 +138,7 @@ export class EmbeddingService {
 
     } catch (error) {
       this.logger.error('Failed to embed conversation', error);
-      throw new Error(`Conversation embedding failed: ${error.message}`);
+      throw new Error(`Conversation embedding failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -169,7 +169,7 @@ export class EmbeddingService {
 
     } catch (error) {
       this.logger.error('Failed to embed memory', error);
-      throw new Error(`Memory embedding failed: ${error.message}`);
+      throw new Error(`Memory embedding failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -203,7 +203,7 @@ export class EmbeddingService {
 
     } catch (error) {
       this.logger.error('Failed to embed query', error);
-      throw new Error(`Query embedding failed: ${error.message}`);
+      throw new Error(`Query embedding failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 

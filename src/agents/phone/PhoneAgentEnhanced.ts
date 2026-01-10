@@ -211,7 +211,7 @@ export class PhoneAgentEnhanced extends PhoneAgent {
       
     } catch (error) {
       this.logger.error('Failed to initiate call', { error });
-      throw new Error(`Call initiation failed: ${error.message}`);
+      throw new Error(`Call initiation failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
   

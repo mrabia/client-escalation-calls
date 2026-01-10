@@ -154,7 +154,7 @@ export class LongTermMemory {
 
     } catch (error) {
       this.logger.error('Failed to store episodic memory', error);
-      throw new Error(`Episodic memory storage failed: ${error.message}`);
+      throw new Error(`Episodic memory storage failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -248,7 +248,7 @@ export class LongTermMemory {
 
     } catch (error) {
       this.logger.error('Failed to search episodic memories', error);
-      throw new Error(`Episodic memory search failed: ${error.message}`);
+      throw new Error(`Episodic memory search failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -280,7 +280,7 @@ export class LongTermMemory {
 
     } catch (error) {
       this.logger.error(`Failed to get episodic memory ${id}`, error);
-      throw new Error(`Episodic memory retrieval failed: ${error.message}`);
+      throw new Error(`Episodic memory retrieval failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -333,7 +333,7 @@ export class LongTermMemory {
 
     } catch (error) {
       this.logger.error('Failed to store semantic memory', error);
-      throw new Error(`Semantic memory storage failed: ${error.message}`);
+      throw new Error(`Semantic memory storage failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -432,7 +432,7 @@ export class LongTermMemory {
 
     } catch (error) {
       this.logger.error('Failed to search semantic memories', error);
-      throw new Error(`Semantic memory search failed: ${error.message}`);
+      throw new Error(`Semantic memory search failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -470,7 +470,7 @@ export class LongTermMemory {
 
     } catch (error) {
       this.logger.error(`Failed to update semantic memory ${id}`, error);
-      throw new Error(`Semantic memory update failed: ${error.message}`);
+      throw new Error(`Semantic memory update failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -519,7 +519,7 @@ export class LongTermMemory {
 
     } catch (error) {
       this.logger.error('Failed to delete old memories', error);
-      throw new Error(`Memory deletion failed: ${error.message}`);
+      throw new Error(`Memory deletion failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -541,7 +541,7 @@ export class LongTermMemory {
 
     } catch (error) {
       this.logger.error('Failed to get stats', error);
-      throw new Error(`Stats retrieval failed: ${error.message}`);
+      throw new Error(`Stats retrieval failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 

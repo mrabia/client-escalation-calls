@@ -258,7 +258,7 @@ export class SmsAgent {
       
       await this.recordContactAttempt(task, {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
 
       await this.updateTaskStatus(task.id, TaskStatus.FAILED);
@@ -383,14 +383,14 @@ export class SmsAgent {
 
     } catch (error) {
       logger.error('Failed to send SMS:', {
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         customerId: customer.id,
         taskId: task.id
       });
       
       return {
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       };
     }
   }

@@ -70,7 +70,7 @@ export class DatabaseService {
       logger.error('Database query failed:', {
         query: text,
         params,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
       throw error;
     }
@@ -246,7 +246,7 @@ export class DatabaseService {
       } catch (error) {
         logger.error('Failed to execute table creation query:', {
           query: query.substring(0, 100),
-          error: error.message
+          error: error instanceof Error ? error.message : String(error)
         });
         throw error;
       }

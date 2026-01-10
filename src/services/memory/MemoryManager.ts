@@ -119,7 +119,7 @@ export class MemoryManager {
 
     } catch (error) {
       this.logger.error('Failed to initialize memory manager', error);
-      throw new Error(`Memory manager initialization failed: ${error.message}`);
+      throw new Error(`Memory manager initialization failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -209,7 +209,7 @@ export class MemoryManager {
 
     } catch (error) {
       this.logger.error('Memory query failed', error);
-      throw new Error(`Memory query failed: ${error.message}`);
+      throw new Error(`Memory query failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -280,7 +280,7 @@ export class MemoryManager {
 
     } catch (error) {
       this.logger.error('Failed to store session', error);
-      throw new Error(`Session storage failed: ${error.message}`);
+      throw new Error(`Session storage failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -298,7 +298,7 @@ export class MemoryManager {
       this.logger.debug(`Updated session ${sessionId}`);
     } catch (error) {
       this.logger.error(`Failed to update session ${sessionId}`, error);
-      throw new Error(`Session update failed: ${error.message}`);
+      throw new Error(`Session update failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -351,7 +351,7 @@ export class MemoryManager {
 
     } catch (error) {
       this.logger.error('Failed to store interaction', error);
-      throw new Error(`Interaction storage failed: ${error.message}`);
+      throw new Error(`Interaction storage failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -367,7 +367,7 @@ export class MemoryManager {
       return memoryId;
     } catch (error) {
       this.logger.error('Failed to store strategy', error);
-      throw new Error(`Strategy storage failed: ${error.message}`);
+      throw new Error(`Strategy storage failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -417,7 +417,7 @@ export class MemoryManager {
 
     } catch (error) {
       this.logger.error(`Failed to consolidate session ${sessionId}`, error);
-      throw new Error(`Session consolidation failed: ${error.message}`);
+      throw new Error(`Session consolidation failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -456,7 +456,7 @@ export class MemoryManager {
 
     } catch (error) {
       this.logger.error('Failed to get stats', error);
-      throw new Error(`Stats retrieval failed: ${error.message}`);
+      throw new Error(`Stats retrieval failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 
@@ -505,7 +505,7 @@ export class MemoryManager {
 
     } catch (error) {
       this.logger.error('Failed to close memory manager', error);
-      throw new Error(`Memory manager close failed: ${error.message}`);
+      throw new Error(`Memory manager close failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
     }
   }
 }

@@ -1,4 +1,4 @@
-import * as crypto from 'crypto';
+import crypto from 'crypto';
 import { Logger } from 'winston';
 
 /**
@@ -42,7 +42,7 @@ export class EncryptionService {
       const iv = crypto.randomBytes(16);
       
       // Create cipher
-      const cipher = crypto.createCipheriv(this.algorithm, this.encryptionKey, iv);
+      const cipher = crypto.createCipheriv(this.algorithm, this.encryptionKey, iv) as crypto.CipherGCM;
       
       // Encrypt
       let encrypted = cipher.update(plaintext, 'utf8', 'hex');
@@ -81,7 +81,7 @@ export class EncryptionService {
       const encrypted = parts[2];
       
       // Create decipher
-      const decipher = crypto.createDecipheriv(this.algorithm, this.encryptionKey, iv);
+      const decipher = crypto.createDecipheriv(this.algorithm, this.encryptionKey, iv) as crypto.DecipherGCM;
       decipher.setAuthTag(authTag);
       
       // Decrypt

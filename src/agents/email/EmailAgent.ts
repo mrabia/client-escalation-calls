@@ -277,7 +277,7 @@ Best regards,
       
       await this.recordContactAttempt(task, {
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         messageId: null
       });
 
@@ -341,7 +341,7 @@ Best regards,
 
     } catch (error) {
       logger.error('Failed to send email:', {
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         customerId: customer.id,
         taskId: task.id
       });

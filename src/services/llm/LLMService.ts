@@ -216,7 +216,7 @@ export class LLMService {
       } catch (error: any) {
         lastError = error;
         logger.warn(`Provider ${provider} failed, trying next`, {
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     }

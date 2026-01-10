@@ -329,22 +329,22 @@ export class ApiGateway {
     this.app.use((error: any, req: Request, res: Response, next: NextFunction) => {
       logger.error('API Error', {
         requestId: req.id,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         stack: error.stack,
         url: req.url,
         method: req.method
       });
 
       if (error instanceof ValidationError) {
-        return this.sendError(res, error.message, 'VALIDATION_ERROR', 400, error);
+        return this.sendError(res, error instanceof Error ? error.message : String(error), 'VALIDATION_ERROR', 400, error);
       }
 
       if (error instanceof UnauthorizedError) {
-        return this.sendError(res, error.message, 'UNAUTHORIZED', 401);
+        return this.sendError(res, error instanceof Error ? error.message : String(error), 'UNAUTHORIZED', 401);
       }
 
       if (error instanceof ForbiddenError) {
-        return this.sendError(res, error.message, 'FORBIDDEN', 403);
+        return this.sendError(res, error instanceof Error ? error.message : String(error), 'FORBIDDEN', 403);
       }
 
       this.sendError(res, 'Internal server error', 'INTERNAL_ERROR', 500);
