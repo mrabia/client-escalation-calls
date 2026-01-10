@@ -21,6 +21,8 @@ export class EmailAgentEnhanced extends EmailAgent {
   private agenticRAG: AgenticRAGService;
   private memoryManager: MemoryManager;
   private emailGeneration: EmailGenerationService;
+  private emailGenerationService: EmailGenerationService; // Alias for compatibility
+  private llmService: any; // LLM service for advanced operations
   private logger: Logger;
 
   constructor(
@@ -35,6 +37,8 @@ export class EmailAgentEnhanced extends EmailAgent {
     this.agenticRAG = new AgenticRAGService();
     this.memoryManager = new MemoryManager();
     this.emailGeneration = new EmailGenerationService();
+    this.emailGenerationService = this.emailGeneration; // Alias
+    this.llmService = null; // Will be initialized if needed
     this.logger = createLogger(`EmailAgentEnhanced-${agentId}`);
   }
 
@@ -521,6 +525,24 @@ Provide analysis in JSON format:
         intent: 'unknown'
       };
     }
+  }
+
+  /**
+   * Evaluate email quality
+   */
+  private async evaluateEmailQuality(
+    content: string,
+    context: any,
+    intent: string
+  ): Promise<{ overallScore: number; [key: string]: any }> {
+    // Simple quality evaluation based on content length and context
+    const score = Math.min(100, content.length / 10 + (context.confidence || 0) * 50);
+    return {
+      overallScore: score,
+      contentQuality: score,
+      contextRelevance: context.confidence || 0,
+      intent
+    };
   }
 
   /**

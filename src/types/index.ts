@@ -228,6 +228,8 @@ export interface TaskContext {
 
 export interface ContactAttempt {
   id: string;
+  taskId?: string; // Added for agent compatibility
+  customerId?: string; // Added for agent compatibility
   channel: ContactMethod;
   timestamp: Date;
   status: ContactStatus;

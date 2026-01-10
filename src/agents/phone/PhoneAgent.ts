@@ -738,6 +738,10 @@ export class PhoneAgent {
     return Array.from(this.activeCalls.values());
   }
 
+  async close(): Promise<void> {
+    await this.shutdown();
+  }
+
   async shutdown(): Promise<void> {
     try {
       this.isRunning = false;

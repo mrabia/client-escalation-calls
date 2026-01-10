@@ -585,6 +585,10 @@ Best regards,
     };
   }
 
+  async close(): Promise<void> {
+    await this.shutdown();
+  }
+
   async shutdown(): Promise<void> {
     try {
       this.isRunning = false;
