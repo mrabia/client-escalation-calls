@@ -198,7 +198,7 @@ Please regenerate the email addressing these issues while maintaining the core m
       });
 
       // Step 9: Update task status
-      await this.updateTaskStatus(task.id, 'COMPLETED');
+      await this.updateTaskStatus(task.id, TaskStatus.COMPLETED);
 
       this.logger.info(`Email sent successfully for task ${task.id} with RAG confidence ${ragResult.assembledContext.confidence}`);
 
@@ -211,7 +211,7 @@ Please regenerate the email addressing these issues while maintaining the core m
         messageId: null
       });
 
-      await this.updateTaskStatus(task.id, 'FAILED');
+      await this.updateTaskStatus(task.id, TaskStatus.FAILED);
       throw error;
     }
   }

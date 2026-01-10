@@ -79,21 +79,21 @@ export class SmsAgent {
   // Default SMS templates
   private readonly DEFAULT_TEMPLATES: Record<string, SmsTemplate> = {
     payment_reminder_sms: {
-      content: `Payment Reminder: Invoice {{invoiceNumber}} for ${{amount}} was due {{dueDate}}. Please pay at {{paymentLink}} or call {{supportPhone}}. Reply STOP to opt out.`,
+      content: `Payment Reminder: Invoice {{invoiceNumber}} for \$\{\{amount}} was due {{dueDate}}. Please pay at {{paymentLink}} or call {{supportPhone}}. Reply STOP to opt out.`,
       variables: ['invoiceNumber', 'amount', 'dueDate', 'paymentLink', 'supportPhone'],
       category: 'reminder',
       complianceLevel: 'standard'
     },
 
     final_notice_sms: {
-      content: `FINAL NOTICE: Invoice {{invoiceNumber}} - ${{amount}} is {{daysOverdue}} days overdue. Immediate payment required. Pay now: {{paymentLink}} or call {{supportPhone}} Reply STOP to opt out.`,
+      content: `FINAL NOTICE: Invoice {{invoiceNumber}} - \$\{\{amount}} is {{daysOverdue}} days overdue. Immediate payment required. Pay now: {{paymentLink}} or call {{supportPhone}} Reply STOP to opt out.`,
       variables: ['invoiceNumber', 'amount', 'daysOverdue', 'paymentLink', 'supportPhone'],
       category: 'notice',
       complianceLevel: 'final_notice'
     },
 
     payment_confirmation: {
-      content: `Payment received for Invoice {{invoiceNumber}} - ${{amount}}. Thank you! Your account is current. Questions? Call {{supportPhone}} Reply STOP to opt out.`,
+      content: `Payment received for Invoice {{invoiceNumber}} - \$\{\{amount}}. Thank you! Your account is current. Questions? Call {{supportPhone}} Reply STOP to opt out.`,
       variables: ['invoiceNumber', 'amount', 'supportPhone'],
       category: 'confirmation',
       complianceLevel: 'standard'
@@ -712,7 +712,7 @@ export class SmsAgent {
         id: `attempt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         taskId: task.id,
         agentId: this.agentId,
-        channel: 'sms',
+        channel: ContactMethod.SMS,
         status: result.success ? ContactStatus.SENT : ContactStatus.FAILED,
         timestamp: new Date(),
         metadata: {

@@ -382,7 +382,7 @@ export enum ComplianceAction {
  * Message interface for conversation history
  */
 export interface Message {
-  role: 'user' | 'assistant' | 'system';
+  role: 'user' | 'assistant' | 'system' | 'agent' | 'customer';
   content: string;
   timestamp?: Date;
   metadata?: Record<string, any>;

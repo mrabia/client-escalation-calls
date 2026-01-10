@@ -83,7 +83,7 @@ export class PhoneAgent {
   private readonly DEFAULT_SCRIPTS: Record<string, PhoneScript> = {
     payment_reminder_call: {
       greeting: "Hello, this is {{senderName}} from {{companyName}}. May I speak with {{contactName}}?",
-      mainMessage: `I'm calling regarding invoice {{invoiceNumber}} for ${{amount}} which was due on {{dueDate}}. 
+      mainMessage: `I'm calling regarding invoice {{invoiceNumber}} for \$\{\{amount}} which was due on {{dueDate}}. 
                    This payment is now {{daysOverdue}} days overdue. We'd like to arrange payment today.`,
       options: [
         {
@@ -117,7 +117,7 @@ export class PhoneAgent {
 
     final_notice_call: {
       greeting: "Hello, this is {{senderName}} from {{companyName}} calling regarding an urgent matter for {{contactName}}.",
-      mainMessage: `This is a final notice for invoice {{invoiceNumber}} in the amount of ${{amount}}. 
+      mainMessage: `This is a final notice for invoice {{invoiceNumber}} in the amount of \$\{\{amount}}. 
                    This payment is {{daysOverdue}} days overdue. Immediate payment is required to avoid further collection activities.`,
       options: [
         {
@@ -583,7 +583,7 @@ export class PhoneAgent {
         id: `attempt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         taskId: task.id,
         agentId: this.agentId,
-        channel: 'phone',
+        channel: ContactMethod.PHONE,
         status: result.success ? ContactStatus.SENT : ContactStatus.FAILED,
         duration: result.duration,
         timestamp: new Date(),

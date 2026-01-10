@@ -71,13 +71,13 @@ export class EmailAgent {
           <h2>Payment Reminder</h2>
           <p>Dear {{contactName}},</p>
           <p>We hope this email finds you well. We wanted to remind you that payment for invoice <strong>{{invoiceNumber}}</strong> 
-          in the amount of <strong>${{amount}} {{currency}}</strong> was due on <strong>{{dueDate}}</strong>.</p>
+          in the amount of <strong>\$\{\{amount}} {{currency}}</strong> was due on <strong>{{dueDate}}</strong>.</p>
           
           <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
             <h3>Invoice Details:</h3>
             <ul>
               <li><strong>Invoice Number:</strong> {{invoiceNumber}}</li>
-              <li><strong>Amount:</strong> ${{amount}} {{currency}}</li>
+              <li><strong>Amount:</strong> \$\{\{amount}} {{currency}}</li>
               <li><strong>Due Date:</strong> {{dueDate}}</li>
               <li><strong>Days Overdue:</strong> {{daysOverdue}}</li>
             </ul>
@@ -101,11 +101,11 @@ Payment Reminder - Invoice {{invoiceNumber}}
 Dear {{contactName}},
 
 We hope this email finds you well. We wanted to remind you that payment for invoice {{invoiceNumber}} 
-in the amount of ${{amount}} {{currency}} was due on {{dueDate}}.
+in the amount of \$\{\{amount}} {{currency}} was due on {{dueDate}}.
 
 Invoice Details:
 - Invoice Number: {{invoiceNumber}}
-- Amount: ${{amount}} {{currency}}
+- Amount: \$\{\{amount}} {{currency}}
 - Due Date: {{dueDate}}
 - Days Overdue: {{daysOverdue}}
 
@@ -138,7 +138,7 @@ Best regards,
             <h3 style="color: #721c24;">Invoice Details:</h3>
             <ul>
               <li><strong>Invoice Number:</strong> {{invoiceNumber}}</li>
-              <li><strong>Amount:</strong> ${{amount}} {{currency}}</li>
+              <li><strong>Amount:</strong> \$\{\{amount}} {{currency}}</li>
               <li><strong>Original Due Date:</strong> {{dueDate}}</li>
               <li><strong>Days Overdue:</strong> {{daysOverdue}}</li>
             </ul>
@@ -166,7 +166,7 @@ This is a FINAL NOTICE regarding the overdue payment for invoice {{invoiceNumber
 
 Invoice Details:
 - Invoice Number: {{invoiceNumber}}
-- Amount: ${{amount}} {{currency}}
+- Amount: \$\{\{amount}} {{currency}}
 - Original Due Date: {{dueDate}}
 - Days Overdue: {{daysOverdue}}
 
@@ -361,7 +361,7 @@ Best regards,
         id: `attempt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         taskId: task.id,
         agentId: this.agentId,
-        channel: 'email',
+        channel: ContactMethod.EMAIL,
         status: result.success ? ContactStatus.SENT : ContactStatus.FAILED,
         response: result.error || null,
         timestamp: new Date(),
@@ -545,7 +545,7 @@ Best regards,
         id: `response_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         taskId,
         agentId: this.agentId,
-        channel: 'email',
+        channel: ContactMethod.EMAIL,
         status: ContactStatus.REPLIED,
         timestamp: new Date(),
         metadata: {
