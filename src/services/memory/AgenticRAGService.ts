@@ -409,7 +409,7 @@ Respond in JSON format:
 
       // Remove duplicates
       merged.episodicMemories = this.deduplicateEpisodic(merged.episodicMemories);
-      merged.semanticMemories = this.deduplicate Semantic(merged.semanticMemories);
+      merged.semanticMemories = this.deduplicateSemantic(merged.semanticMemories);
       
       merged.totalResults = merged.episodicMemories.length + merged.semanticMemories.length;
 
