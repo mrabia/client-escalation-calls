@@ -452,15 +452,97 @@ Respond in JSON format:
 
   /**
    * Re-rank results using LLM
+   * Uses Gemini 2.0 Pro Exp for maximum quality re-ranking
    */
   private async rerankResults(
     memories: MemoryQueryResult,
     originalQuery: string
   ): Promise<void> {
-    // TODO: Implement LLM-based re-ranking
-    // For now, keep top results based on existing scores
-    memories.episodicMemories = memories.episodicMemories.slice(0, 5);
-    memories.semanticMemories = memories.semanticMemories.slice(0, 3);
+    try {
+      // Combine all memories for re-ranking
+      const allMemories = [
+        ...memories.episodicMemories.map(m => ({
+          type: 'episodic' as const,
+          content: `${m.action} - ${m.outcome.description}`,
+          metadata: m,
+          originalScore: m.similarity
+        })),
+        ...memories.semanticMemories.map(m => ({
+          type: 'semantic' as const,
+          content: m.strategy,
+          metadata: m,
+          originalScore: m.similarity
+        }))
+      ];
+
+      if (allMemories.length === 0) {
+        return; // Nothing to re-rank
+      }
+
+      // Create re-ranking prompt
+      const prompt = `You are an expert at ranking memory relevance for payment collection.
+
+Original Query: "${originalQuery}"
+
+Memories to rank:
+${allMemories.map((m, i) => `${i + 1}. [${m.type}] ${m.content} (original score: ${m.originalScore.toFixed(3)})`).join('\n')}
+
+Task: Re-rank these memories by relevance to the query. Consider:
+1. Direct relevance to the query intent
+2. Actionability of the information
+3. Recency and success rate (for episodic)
+4. Applicability (for semantic)
+
+Respond with a JSON array of indices (1-based) in order of relevance:
+{"rankings": [index1, index2, ...]}`;
+
+      // Call LLM for re-ranking using Gemini 2.0 Pro Exp
+      const response = await this.llmService.generateCompletion({
+        provider: 'google',
+        model: 'gemini-2.0-pro-exp',
+        messages: [{
+          role: 'user',
+          content: prompt
+        }],
+        temperature: 0.1,
+        maxTokens: 1024,
+        responseFormat: { type: 'json_object' }
+      });
+
+      // Parse rankings
+      const rankings = JSON.parse(response.content);
+      if (!rankings.rankings || !Array.isArray(rankings.rankings)) {
+        throw new Error('Invalid rankings format from LLM');
+      }
+
+      // Reorder memories based on LLM rankings
+      const reorderedMemories = rankings.rankings
+        .map((idx: number) => allMemories[idx - 1])
+        .filter((m: any) => m !== undefined);
+
+      // Split back into episodic and semantic
+      memories.episodicMemories = reorderedMemories
+        .filter((m: any) => m.type === 'episodic')
+        .map((m: any) => m.metadata)
+        .slice(0, 5); // Keep top 5
+
+      memories.semanticMemories = reorderedMemories
+        .filter((m: any) => m.type === 'semantic')
+        .map((m: any) => m.metadata)
+        .slice(0, 3); // Keep top 3
+
+      this.logger.debug('Re-ranked memories using LLM', {
+        originalCount: allMemories.length,
+        episodicCount: memories.episodicMemories.length,
+        semanticCount: memories.semanticMemories.length
+      });
+
+    } catch (error) {
+      this.logger.error('Failed to re-rank with LLM, using original scores', { error });
+      // Fallback: keep top results based on existing scores
+      memories.episodicMemories = memories.episodicMemories.slice(0, 5);
+      memories.semanticMemories = memories.semanticMemories.slice(0, 3);
+    }
   }
 
   // ============================================================================

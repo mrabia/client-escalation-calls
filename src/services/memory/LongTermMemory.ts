@@ -374,7 +374,31 @@ export class LongTermMemory {
         });
       }
 
-      // TODO: Add applicability filters
+      // Add applicability filters
+      if (filters?.applicableToCustomerType) {
+        qdrantFilter.must.push({
+          key: 'applicability.customerTypes',
+          match: { any: [filters.applicableToCustomerType] }
+        });
+      }
+
+      if (filters?.applicableToPaymentAmount) {
+        qdrantFilter.must.push({
+          key: 'applicability.paymentAmountRange.min',
+          range: { lte: filters.applicableToPaymentAmount }
+        });
+        qdrantFilter.must.push({
+          key: 'applicability.paymentAmountRange.max',
+          range: { gte: filters.applicableToPaymentAmount }
+        });
+      }
+
+      if (filters?.applicableToChannel) {
+        qdrantFilter.must.push({
+          key: 'applicability.channels',
+          match: { any: [filters.applicableToChannel] }
+        });
+      }
 
       // Search
       const results = await this.qdrant.search({
@@ -462,15 +486,36 @@ export class LongTermMemory {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
 
-      await this.qdrant.deleteByFilter('episodic_memories', {
+      // First, count how many will be deleted
+      const countResult = await this.qdrant.scroll({
+        collection: 'episodic_memories',
+        filter: {
+          must: [{
+            key: 'timestamp',
+            range: { lt: cutoffDate.toISOString() }
+          }]
+        },
+        limit: 1,
+        with_payload: false,
+        with_vector: false
+      });
+
+      const totalCount = countResult.points.length > 0 ? countResult.points[0].id : 0;
+
+      // Delete the memories
+      const deleteResult = await this.qdrant.deleteByFilter('episodic_memories', {
         must: [{
           key: 'timestamp',
           range: { lt: cutoffDate.toISOString() }
         }]
       });
 
-      this.logger.info(`Deleted episodic memories older than ${olderThanDays} days`);
-      return 0; // TODO: Return actual count
+      const deletedCount = typeof deleteResult === 'object' && 'deleted' in deleteResult 
+        ? deleteResult.deleted 
+        : totalCount;
+
+      this.logger.info(`Deleted ${deletedCount} episodic memories older than ${olderThanDays} days`);
+      return deletedCount;
 
     } catch (error) {
       this.logger.error('Failed to delete old memories', error);

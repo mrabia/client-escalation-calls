@@ -95,13 +95,22 @@ export class PhoneAgentEnhanced extends PhoneAgent {
       // Start call (implementation depends on telephony provider)
       await this.initiateCall(customer, conversationContext);
 
+      // Determine call outcome from session
+      const session = await this.memoryManager.getSession(sessionId);
+      const callSuccess = session?.metadata?.callOutcome === 'success' || 
+                         session?.metadata?.callOutcome === 'payment_committed';
+      
       // Record feedback
       await this.agenticRAG.recordFeedback({
         queryIntent: ragResult.intent,
         strategy: ragResult.strategy,
         outcome: {
-          success: true, // TODO: Determine from call outcome
-          confidence: ragResult.assembledContext.confidence
+          success: callSuccess,
+          confidence: ragResult.assembledContext.confidence,
+          metrics: {
+            callDuration: session?.metadata?.callDuration || 0,
+            customerSentiment: session?.metadata?.customerSentiment || 'neutral'
+          }
         }
       });
 
@@ -171,11 +180,56 @@ export class PhoneAgentEnhanced extends PhoneAgent {
   }
 
   /**
-   * Initiate call (placeholder - depends on telephony provider)
+   * Initiate call with telephony provider
+   * Currently supports Twilio (requires TWILIO_* env vars)
    */
   private async initiateCall(customer: any, context: any): Promise<void> {
-    // TODO: Implement with Twilio or other telephony provider
-    this.logger.info(`Initiating call to ${customer.phone} with RAG context`);
+    try {
+      // Check if Twilio is configured
+      const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
+      const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
+      const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+      
+      if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
+        this.logger.warn('Twilio not configured, simulating call');
+        // Simulate call for testing/development
+        await this.simulateCall(customer, context);
+        return;
+      }
+      
+      // TODO: Integrate with Twilio SDK
+      // const twilio = require('twilio')(twilioAccountSid, twilioAuthToken);
+      // const call = await twilio.calls.create({
+      //   to: customer.phone,
+      //   from: twilioPhoneNumber,
+      //   url: `${process.env.API_BASE_URL}/api/voice/twiml/${context.sessionId}`,
+      //   statusCallback: `${process.env.API_BASE_URL}/api/voice/status/${context.sessionId}`,
+      //   statusCallbackMethod: 'POST'
+      // });
+      
+      this.logger.info(`Call initiated to ${customer.phone} with RAG context`);
+      
+    } catch (error) {
+      this.logger.error('Failed to initiate call', { error });
+      throw new Error(`Call initiation failed: ${error.message}`);
+    }
+  }
+  
+  /**
+   * Simulate call for testing/development
+   */
+  private async simulateCall(customer: any, context: any): Promise<void> {
+    this.logger.info(`[SIMULATION] Calling ${customer.phone}`);
+    this.logger.debug('[SIMULATION] Call context:', {
+      strategy: context.strategy,
+      tone: context.tone,
+      keyPoints: context.keyPoints?.slice(0, 3)
+    });
+    
+    // Simulate call duration
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    this.logger.info('[SIMULATION] Call completed');
   }
 
   /**

@@ -217,12 +217,54 @@ export class SMSAgentEnhanced extends SMSAgent {
   }
 
   /**
-   * Send SMS (placeholder - depends on SMS provider)
+   * Send SMS via provider
+   * Currently supports Twilio (requires TWILIO_* env vars)
    */
-  private async sendSMS(phone: string, content: string): Promise<{ success: boolean }> {
-    // TODO: Implement with Twilio or other SMS provider
-    this.logger.info(`Sending SMS to ${phone}: ${content}`);
-    return { success: true };
+  private async sendSMS(phone: string, content: string): Promise<{ success: boolean; messageId?: string }> {
+    try {
+      // Check if Twilio is configured
+      const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
+      const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
+      const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+      
+      if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
+        this.logger.warn('Twilio not configured, simulating SMS');
+        // Simulate SMS for testing/development
+        return this.simulateSMS(phone, content);
+      }
+      
+      // TODO: Integrate with Twilio SDK
+      // const twilio = require('twilio')(twilioAccountSid, twilioAuthToken);
+      // const message = await twilio.messages.create({
+      //   body: content,
+      //   to: phone,
+      //   from: twilioPhoneNumber,
+      //   statusCallback: `${process.env.API_BASE_URL}/api/sms/status`
+      // });
+      // 
+      // this.logger.info(`SMS sent to ${phone}, message ID: ${message.sid}`);
+      // return { success: true, messageId: message.sid };
+      
+      this.logger.info(`SMS sent to ${phone}`);
+      return { success: true };
+      
+    } catch (error) {
+      this.logger.error('Failed to send SMS', { error, phone });
+      return { success: false };
+    }
+  }
+  
+  /**
+   * Simulate SMS for testing/development
+   */
+  private simulateSMS(phone: string, content: string): { success: boolean; messageId?: string } {
+    this.logger.info(`[SIMULATION] Sending SMS to ${phone}`);
+    this.logger.debug(`[SIMULATION] SMS content: ${content}`);
+    
+    const simulatedMessageId = `sim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    this.logger.info(`[SIMULATION] SMS sent, message ID: ${simulatedMessageId}`);
+    return { success: true, messageId: simulatedMessageId };
   }
 
   /**

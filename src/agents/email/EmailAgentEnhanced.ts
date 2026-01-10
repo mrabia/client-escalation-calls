@@ -128,9 +128,41 @@ export class EmailAgentEnhanced extends EmailAgent {
         ragResult.intent
       );
 
-      if (quality.needsRefinement && quality.overallScore < 0.7) {
-        this.logger.warn(`Email quality low (${quality.overallScore}), regenerating...`);
-        // TODO: Implement refinement loop
+      // Refinement loop: regenerate if quality is too low
+      let refinementAttempts = 0;
+      const maxRefinementAttempts = 2;
+      
+      while (quality.needsRefinement && quality.overallScore < 0.7 && refinementAttempts < maxRefinementAttempts) {
+        this.logger.warn(`Email quality low (${quality.overallScore}), regenerating (attempt ${refinementAttempts + 1}/${maxRefinementAttempts})...`);
+        
+        refinementAttempts++;
+        
+        // Regenerate with feedback
+        const refinementPrompt = `Previous email had quality issues:
+${quality.issues.map(issue => `- ${issue}`).join('\n')}
+
+Please regenerate the email addressing these issues while maintaining the core message.`;
+        
+        emailContent = await this.emailGenerationService.generateEmail(
+          customer,
+          ragResult.assembledContext,
+          ragResult.strategy,
+          { refinementFeedback: refinementPrompt }
+        );
+        
+        // Re-evaluate quality
+        quality = await this.evaluateEmailQuality(
+          emailContent.htmlContent,
+          ragResult.assembledContext,
+          ragResult.intent
+        );
+        
+        this.logger.info(`Refinement attempt ${refinementAttempts}: new quality score ${quality.overallScore}`);
+      }
+      
+      if (quality.overallScore < 0.7) {
+        this.logger.error(`Email quality still low after ${refinementAttempts} refinement attempts`);
+        // Continue anyway but log the issue
       }
 
       // Step 5: Send email
@@ -380,24 +412,115 @@ export class EmailAgentEnhanced extends EmailAgent {
 
   /**
    * Extract task ID from email headers
+   * Looks for X-Task-ID header or task ID in subject/references
    */
   private extractTaskIdFromEmail(emailData: any): string | null {
-    // TODO: Implement extraction from email headers
-    return null;
+    try {
+      // Check for custom X-Task-ID header
+      if (emailData.headers && emailData.headers['x-task-id']) {
+        return emailData.headers['x-task-id'];
+      }
+      
+      // Check for task ID in References header (threaded emails)
+      if (emailData.headers && emailData.headers.references) {
+        const references = Array.isArray(emailData.headers.references) 
+          ? emailData.headers.references 
+          : [emailData.headers.references];
+        
+        for (const ref of references) {
+          const match = ref.match(/task-([a-zA-Z0-9-]+)@/);
+          if (match) {
+            return match[1];
+          }
+        }
+      }
+      
+      // Check for task ID in In-Reply-To header
+      if (emailData.headers && emailData.headers['in-reply-to']) {
+        const match = emailData.headers['in-reply-to'].match(/task-([a-zA-Z0-9-]+)@/);
+        if (match) {
+          return match[1];
+        }
+      }
+      
+      // Check for task ID in subject line (format: [Task: TASK-123])
+      if (emailData.subject) {
+        const match = emailData.subject.match(/\[Task:\s*([a-zA-Z0-9-]+)\]/);
+        if (match) {
+          return match[1];
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      this.logger.error('Failed to extract task ID from email', { error });
+      return null;
+    }
   }
 
   /**
-   * Analyze customer response
+   * Analyze customer response using LLM
+   * Uses Gemini 2.0 Pro Exp for maximum quality analysis
    */
   private async analyzeResponse(body: string): Promise<{
     sentiment: 'positive' | 'neutral' | 'negative';
     intent: string;
   }> {
-    // TODO: Implement with LLM
-    return {
-      sentiment: 'neutral',
-      intent: 'unknown'
-    };
+    try {
+      const prompt = `Analyze this customer email response for sentiment and intent.
+
+Email body:
+"${body}"
+
+Provide analysis in JSON format:
+{
+  "sentiment": "positive" | "neutral" | "negative",
+  "intent": "brief description of customer's intent (e.g., 'agrees to pay', 'requests extension', 'disputes charge', 'asks for information')",
+  "reasoning": "brief explanation of your analysis"
+}`;
+
+      const response = await this.llmService.generateCompletion({
+        provider: 'google',
+        model: 'gemini-2.0-pro-exp',
+        messages: [{
+          role: 'user',
+          content: prompt
+        }],
+        temperature: 0.1,
+        maxTokens: 512,
+        responseFormat: { type: 'json_object' }
+      });
+
+      const analysis = JSON.parse(response.content);
+      
+      this.logger.debug('Customer response analyzed', {
+        sentiment: analysis.sentiment,
+        intent: analysis.intent,
+        reasoning: analysis.reasoning
+      });
+
+      return {
+        sentiment: analysis.sentiment || 'neutral',
+        intent: analysis.intent || 'unknown'
+      };
+
+    } catch (error) {
+      this.logger.error('Failed to analyze customer response', { error });
+      // Fallback to simple keyword-based analysis
+      const lowerBody = body.toLowerCase();
+      
+      let sentiment: 'positive' | 'neutral' | 'negative' = 'neutral';
+      if (lowerBody.includes('thank') || lowerBody.includes('will pay') || lowerBody.includes('agree')) {
+        sentiment = 'positive';
+      } else if (lowerBody.includes('cannot') || lowerBody.includes('dispute') || lowerBody.includes('angry')) {
+        sentiment = 'negative';
+      }
+      
+      return {
+        sentiment,
+        intent: 'unknown'
+      };
+    }
   }
 
   /**
