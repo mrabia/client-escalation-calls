@@ -69,6 +69,10 @@ export interface MemoryStorageOptions {
     customerRisk?: string;
     paymentHistory?: string;
     previousAttempts?: number;
+    paymentAmount?: number;
+    daysOverdue?: number;
+    callAttempt?: number;
+    [key: string]: any; // Allow additional properties
   };
   
   // Metadata
@@ -225,6 +229,13 @@ export class MemoryManager {
       this.logger.error(`Failed to get session ${sessionId}`, error);
       return null;
     }
+  }
+
+  /**
+   * Get session by ID (alias for getCurrentSession)
+   */
+  async getSession(sessionId: string): Promise<SessionContext | null> {
+    return this.getCurrentSession(sessionId);
   }
 
   /**

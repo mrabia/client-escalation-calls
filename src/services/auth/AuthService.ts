@@ -3,7 +3,7 @@
  * Handles user authentication, JWT generation, and session management
  */
 
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { createClient } from 'redis';
 import crypto from 'crypto';
@@ -184,9 +184,8 @@ export class AuthService {
       sessionId,
     };
 
-    return jwt.sign(payload, this.jwtSecret, {
-      expiresIn: this.accessTokenExpiry,
-    });
+    const options: SignOptions = { expiresIn: this.accessTokenExpiry };
+    return jwt.sign(payload, this.jwtSecret, options);
   }
 
   /**
@@ -200,9 +199,8 @@ export class AuthService {
       sessionId,
     };
 
-    return jwt.sign(payload, this.jwtRefreshSecret, {
-      expiresIn: this.refreshTokenExpiry,
-    });
+    const options: SignOptions = { expiresIn: this.refreshTokenExpiry };
+    return jwt.sign(payload, this.jwtRefreshSecret, options);
   }
 
   /**

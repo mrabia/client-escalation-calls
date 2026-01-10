@@ -9,8 +9,8 @@ export class RedisService {
     this.client = createClient({
       url: process.env.REDIS_URL || 'redis://localhost:6379',
       socket: {
-        reconnectDelay: 1000,
-        connectTimeout: 5000
+        connectTimeout: 5000,
+        reconnectStrategy: (retries: number) => Math.min(retries * 1000, 5000)
       }
     });
 

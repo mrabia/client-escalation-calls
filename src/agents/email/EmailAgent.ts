@@ -495,8 +495,6 @@ Best regards,
           envelope: true,
           bodyStructure: true,
           headers: ['x-task-id', 'x-customer-id', 'x-campaign-id']
-        }, {
-          seen: false
         });
 
         for await (const message of messages) {

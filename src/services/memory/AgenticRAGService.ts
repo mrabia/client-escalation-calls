@@ -784,6 +784,7 @@ Respond in JSON format:
       success: boolean;
       confidence: number;
       userFeedback?: string;
+      metrics?: Record<string, any>;
     };
   }): Promise<void> {
     try {

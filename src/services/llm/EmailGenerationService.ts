@@ -260,6 +260,33 @@ Key principles:
   }
 
   /**
+   * Generate payment email with specific context
+   * Alias for generateEmail with payment-specific defaults
+   */
+  async generatePaymentEmail(
+    customerId: string,
+    context: any,
+    options?: { tone?: string; templateType?: string }
+  ): Promise<EmailGenerationResponse> {
+    const request: EmailGenerationRequest = {
+      customerId,
+      templateType: options?.templateType || 'reminder',
+      tone: options?.tone || 'professional',
+      context: {
+        customerName: context.customerName || context.contactName,
+        companyName: context.companyName,
+        outstandingAmount: context.amount || context.outstandingAmount,
+        daysPastDue: context.daysOverdue || context.daysPastDue || 0,
+        riskLevel: context.riskLevel,
+        previousAttempts: context.previousAttempts || 0,
+      },
+      includePaymentLink: true,
+      includeContactInfo: true,
+    };
+    return this.generateEmail(request);
+  }
+
+  /**
    * Generate multiple email variations for A/B testing
    */
   async generateVariations(
