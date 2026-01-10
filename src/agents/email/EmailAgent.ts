@@ -54,8 +54,8 @@ export interface EmailTaskPayload {
 
 export class EmailAgent {
   private agentId: string;
-  private config: EmailConfig;
-  private smtpTransporter: Transporter;
+  protected config: EmailConfig;
+  protected smtpTransporter: Transporter;
   private imapClient: ImapFlow | null = null;
   private dbService: DatabaseService;
   private redisService: RedisService;
@@ -203,7 +203,7 @@ Best regards,
     this.mqService = mqService;
 
     // Initialize SMTP transporter
-    this.smtpTransporter = nodemailer.createTransporter(this.config.smtp);
+    this.smtpTransporter = nodemailer.createTransport(this.config.smtp);
   }
 
   async initialize(): Promise<void> {
@@ -227,7 +227,7 @@ Best regards,
     }
   }
 
-  private async initializeIMAP(): Promise<void> {
+  protected async initializeIMAP(): Promise<void> {
     try {
       this.imapClient = new ImapFlow(this.config.imap);
       
@@ -243,7 +243,7 @@ Best regards,
     }
   }
 
-  private async handleEmailTask(message: any): Promise<void> {
+  protected async handleEmailTask(message: any): Promise<void> {
     const task = message.payload as Task;
     
     try {
@@ -286,7 +286,7 @@ Best regards,
     }
   }
 
-  private async sendEmail(
+  protected async sendEmail(
     customer: Customer,
     emailPayload: EmailTaskPayload,
     task: Task
@@ -349,13 +349,13 @@ Best regards,
     }
   }
 
-  private replaceVariables(template: string, variables: Record<string, any>): string {
+  protected replaceVariables(template: string, variables: Record<string, any>): string {
     return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
       return variables[key] !== undefined ? String(variables[key]) : match;
     });
   }
 
-  private async recordContactAttempt(task: Task, result: any): Promise<void> {
+  protected async recordContactAttempt(task: Task, result: any): Promise<void> {
     try {
       const attempt: Partial<ContactAttempt> = {
         id: `attempt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -396,7 +396,7 @@ Best regards,
     }
   }
 
-  private async updateTaskStatus(taskId: string, status: TaskStatus): Promise<void> {
+  protected async updateTaskStatus(taskId: string, status: TaskStatus): Promise<void> {
     try {
       await this.dbService.query(
         'UPDATE tasks SET status = $1, updated_at = $2 WHERE id = $3',
@@ -416,7 +416,7 @@ Best regards,
     }
   }
 
-  private async getCustomer(customerId: string): Promise<Customer | null> {
+  protected async getCustomer(customerId: string): Promise<Customer | null> {
     try {
       // Try cache first
       const cached = await this.redisService.getJson<Customer>(`customer:${customerId}`);
@@ -462,7 +462,7 @@ Best regards,
     }
   }
 
-  private startResponseMonitoring(): void {
+  protected startResponseMonitoring(): void {
     if (!this.imapClient) {
       return;
     }
@@ -479,7 +479,7 @@ Best regards,
     logger.info(`Email Agent ${this.agentId} started response monitoring`);
   }
 
-  private async processNewEmails(): Promise<void> {
+  protected async processNewEmails(): Promise<void> {
     if (!this.imapClient) {
       return;
     }
@@ -512,7 +512,7 @@ Best regards,
     }
   }
 
-  private async processResponseEmail(message: any): Promise<void> {
+  protected async processResponseEmail(message: any): Promise<void> {
     try {
       const headers = message.headers || {};
       const taskId = headers.get('x-task-id')?.[0];
@@ -539,7 +539,7 @@ Best regards,
     }
   }
 
-  private async recordEmailResponse(taskId: string, customerId: string, message: any): Promise<void> {
+  protected async recordEmailResponse(taskId: string, customerId: string, message: any): Promise<void> {
     try {
       const response: Partial<ContactAttempt> = {
         id: `response_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,

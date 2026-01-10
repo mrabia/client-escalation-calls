@@ -75,6 +75,8 @@ export interface Customer {
   mobile?: string;
   address?: Address;
   preferredContactMethod: ContactMethod;
+  riskLevel?: string; // Added for agent compatibility
+  contactAttempts?: number; // Added for agent compatibility
   paymentHistory: PaymentRecord[];
   profile: CustomerProfile;
   tags: string[];

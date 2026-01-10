@@ -1,4 +1,4 @@
-import { SMSAgent } from './SMSAgent';
+import { SmsAgent } from './SmsAgent';
 import { AgenticRAGService } from '@/services/memory/AgenticRAGService';
 import { MemoryManager } from '@/services/memory/MemoryManager';
 import { Logger } from '@/utils/logger';
@@ -12,7 +12,7 @@ import { Logger } from '@/utils/logger';
  * - Learning from SMS response patterns
  * - Dynamic message optimization
  */
-export class SMSAgentEnhanced extends SMSAgent {
+export class SMSAgentEnhanced extends SmsAgent {
   private agenticRAG: AgenticRAGService;
   private memoryManager: MemoryManager;
   private logger: Logger;

@@ -184,7 +184,7 @@ export class PhoneAgent {
     }
   }
 
-  private async verifyTwilioConfig(): Promise<void> {
+  protected async verifyTwilioConfig(): Promise<void> {
     try {
       // Verify account
       const account = await this.twilioClient.api.accounts(this.config.twilio.accountSid).fetch();
@@ -210,7 +210,7 @@ export class PhoneAgent {
     }
   }
 
-  private async handlePhoneTask(message: any): Promise<void> {
+  protected async handlePhoneTask(message: any): Promise<void> {
     const task = message.payload as Task;
     
     try {
@@ -255,7 +255,7 @@ export class PhoneAgent {
     }
   }
 
-  private async makeCall(
+  protected async makeCall(
     customer: Customer,
     phonePayload: PhoneTaskPayload,
     task: Task
@@ -328,7 +328,7 @@ export class PhoneAgent {
     }
   }
 
-  private generateTwiML(script: PhoneScript, variables: Record<string, any>, taskId: string): string {
+  protected generateTwiML(script: PhoneScript, variables: Record<string, any>, taskId: string): string {
     // Replace variables in script
     const greeting = this.replaceVariables(script.greeting, variables);
     const mainMessage = this.replaceVariables(script.mainMessage, variables);
@@ -370,13 +370,13 @@ export class PhoneAgent {
     return twiml;
   }
 
-  private replaceVariables(text: string, variables: Record<string, any>): string {
+  protected replaceVariables(text: string, variables: Record<string, any>): string {
     return text.replace(/\{\{(\w+)\}\}/g, (match, key) => {
       return variables[key] !== undefined ? String(variables[key]) : match;
     });
   }
 
-  private setupWebhookHandlers(): void {
+  protected setupWebhookHandlers(): void {
     // In a real implementation, these would be Express routes
     // For now, we'll set up the logic that would handle webhook calls
     logger.info(`Phone Agent ${this.agentId} webhook handlers set up`);
@@ -676,7 +676,7 @@ export class PhoneAgent {
     }
   }
 
-  private async getCustomer(customerId: string): Promise<Customer | null> {
+  protected async getCustomer(customerId: string): Promise<Customer | null> {
     try {
       // Try cache first
       const cached = await this.redisService.getJson<Customer>(`customer:${customerId}`);
