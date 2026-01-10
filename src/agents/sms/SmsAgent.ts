@@ -8,6 +8,7 @@ import {
   TaskStatus,
   ContactAttempt,
   ContactStatus,
+  ContactMethod,
   Customer,
   AgentType
 } from '@/types';
@@ -808,7 +809,7 @@ export class SmsAgent {
     }
   }
 
-  private async getCustomer(customerId: string): Promise<Customer | null> {
+  protected async getCustomer(customerId: string): Promise<Customer | null> {
     try {
       // Try cache first
       const cached = await this.redisService.getJson<Customer>(`customer:${customerId}`);

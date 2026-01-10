@@ -302,9 +302,8 @@ Best regards,
       const variables = {
         ...emailPayload.variables,
         contactName: customer.contactName,
-        companyName: customer.companyName,
+        companyName: customer.companyName || process.env.COMPANY_NAME || 'Your Company',
         senderName: process.env.SENDER_NAME || 'Collections Team',
-        companyName: process.env.COMPANY_NAME || 'Your Company',
         senderPhone: process.env.SENDER_PHONE || '(555) 123-4567'
       };
 

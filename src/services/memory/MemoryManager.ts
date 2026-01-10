@@ -1,6 +1,6 @@
 import { ShortTermMemory, SessionContext } from './ShortTermMemory';
 import { LongTermMemory, EpisodicMemory, SemanticMemory } from './LongTermMemory';
-import { createLogger } from '@/utils/logger';
+import { createLogger, Logger } from '@/utils/logger';
 import { Message } from '@/types';
 
 /**

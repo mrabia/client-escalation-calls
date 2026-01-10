@@ -1,5 +1,5 @@
 import { createClient, RedisClientType } from 'redis';
-import { createLogger } from '@/utils/logger';
+import { createLogger, Logger } from '@/utils/logger';
 import { Message } from '@/types';
 
 /**

@@ -1,6 +1,6 @@
 import { MemoryManager, MemoryQueryResult } from './MemoryManager';
 import { LLMService } from '../llm/LLMService';
-import { createLogger } from '@/utils/logger';
+import { createLogger, Logger } from '@/utils/logger';
 import { Message } from '@/types';
 
 /**

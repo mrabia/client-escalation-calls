@@ -1,6 +1,6 @@
 import { QdrantClient } from './QdrantClient';
 import { EmbeddingService } from './EmbeddingService';
-import { createLogger } from '@/utils/logger';
+import { createLogger, Logger } from '@/utils/logger';
 import { Message } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -378,28 +378,28 @@ export class LongTermMemory {
       }
 
       // Add applicability filters
-      if (filters?.applicableToCustomerType) {
+      if (applicableFor?.customerRisk) {
         qdrantFilter.must.push({
           key: 'applicability.customerTypes',
-          match: { any: [filters.applicableToCustomerType] }
+          match: { any: [applicableFor.customerRisk] }
         });
       }
 
-      if (filters?.applicableToPaymentAmount) {
+      if (applicableFor?.paymentAmount) {
         qdrantFilter.must.push({
           key: 'applicability.paymentAmountRange.min',
-          range: { lte: filters.applicableToPaymentAmount }
+          range: { lte: applicableFor.paymentAmount }
         });
         qdrantFilter.must.push({
           key: 'applicability.paymentAmountRange.max',
-          range: { gte: filters.applicableToPaymentAmount }
+          range: { gte: applicableFor.paymentAmount }
         });
       }
 
-      if (filters?.applicableToChannel) {
+      if (applicableFor?.daysSinceOverdue) {
         qdrantFilter.must.push({
-          key: 'applicability.channels',
-          match: { any: [filters.applicableToChannel] }
+          key: 'applicability.daysSinceOverdue',
+          range: { lte: applicableFor.daysSinceOverdue }
         });
       }
 

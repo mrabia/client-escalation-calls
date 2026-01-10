@@ -1,5 +1,5 @@
 import { QdrantClient as Qdrant } from '@qdrant/js-client-rest';
-import { createLogger } from '@/utils/logger';
+import { createLogger, Logger } from '@/utils/logger';
 
 /**
  * Qdrant Vector Database Client
@@ -182,7 +182,7 @@ export class QdrantClient {
       }));
 
     } catch (error) {
-      this.logger.error(`Failed to search in ${collection}`, error);
+      this.logger.error(`Failed to search in collection`, error);
       throw error;
     }
   }

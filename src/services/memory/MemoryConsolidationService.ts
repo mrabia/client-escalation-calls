@@ -1,7 +1,7 @@
 import { MemoryManager } from './MemoryManager';
 import { LongTermMemory } from './LongTermMemory';
 import { LLMService } from '../llm/LLMService';
-import { createLogger } from '@/utils/logger';
+import { createLogger, Logger } from '@/utils/logger';
 
 /**
  * Memory Consolidation Service

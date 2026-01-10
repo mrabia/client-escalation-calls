@@ -56,6 +56,10 @@ export class PhoneAgentEnhanced extends PhoneAgent {
 
       // Get customer details
       const customer = await this.getCustomer(task.customerId);
+      
+      if (!customer) {
+        throw new Error(`Customer not found: ${task.customerId}`);
+      }
 
       // Create session
       await this.memoryManager.storeSession({

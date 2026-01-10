@@ -1,5 +1,5 @@
 import { OpenAI } from 'openai';
-import { createLogger } from '@/utils/logger';
+import { createLogger, Logger } from '@/utils/logger';
 import { Message } from '@/types';
 
 /**
