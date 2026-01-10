@@ -22,6 +22,9 @@ export interface EpisodicMemory {
     channel: string;
   };
   
+  // Alternative conversation format
+  conversationHistory?: Message[];
+  
   // Outcome
   outcome: {
     success: boolean;

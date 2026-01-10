@@ -5,8 +5,8 @@ import { EmailGenerationService } from '@/services/llm/EmailGenerationService';
 import { DatabaseService } from '@/core/services/database';
 import { RedisService } from '@/core/services/redis';
 import { MessageQueueService } from '@/core/services/messageQueue';
-import { createLogger } from '@/utils/logger';
-import { Task, Customer } from '@/types';
+import { createLogger, Logger } from '@/utils/logger';
+import { Task, Customer, TaskStatus, ContactMethod } from '@/types';
 
 /**
  * Enhanced Email Agent with Agentic RAG capabilities
@@ -119,14 +119,14 @@ export class EmailAgentEnhanced extends EmailAgent {
       this.logger.debug(`Agentic RAG completed in ${ragResult.executionTime}ms with confidence ${ragResult.assembledContext.confidence}`);
 
       // Step 3: Generate intelligent email using assembled context
-      const emailContent = await this.generateIntelligentEmail(
+      let emailContent = await this.generateIntelligentEmail(
         customer,
         emailPayload,
         ragResult.assembledContext
       );
 
       // Step 4: Evaluate email quality
-      const quality = await this.agenticRAG.evaluateResponse(
+      let quality = await this.agenticRAG.evaluateResponse(
         emailContent.htmlContent,
         ragResult.assembledContext,
         ragResult.intent

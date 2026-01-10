@@ -76,6 +76,9 @@ export interface CostInfo {
   inputCostPerToken: number;
   outputCostPerToken: number;
   totalCost: number;
+  inputCost?: number;
+  outputCost?: number;
+  currency?: string;
 }
 
 export interface LLMConfig {
@@ -173,12 +176,25 @@ export interface BudgetLimit {
 
 export interface UsageMetrics {
   requestCount: number;
+  totalRequests?: number; // Alias for requestCount
   totalTokens: number;
   totalCost: number;
   averageLatency: number;
+  avgCostPerRequest?: number;
   successRate: number;
   errorRate: number;
   cacheHitRate: number;
+  byProvider?: Array<{
+    provider: string;
+    model: string;
+    requests: number;
+    cost: number;
+    tokens: number;
+  }>;
+  period?: {
+    start: Date;
+    end: Date;
+  };
 }
 
 export interface LLMServiceConfig {

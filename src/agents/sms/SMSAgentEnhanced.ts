@@ -1,7 +1,8 @@
 import { SmsAgent } from './SmsAgent';
 import { AgenticRAGService } from '@/services/memory/AgenticRAGService';
 import { MemoryManager } from '@/services/memory/MemoryManager';
-import { createLogger } from '@/utils/logger';
+import { createLogger, Logger } from '@/utils/logger';
+import { Task, Customer, TaskStatus, ContactMethod } from '@/types';
 
 /**
  * Enhanced SMS Agent with Agentic RAG capabilities

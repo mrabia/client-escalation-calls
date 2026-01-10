@@ -9,6 +9,7 @@ import {
   TaskStatus,
   ContactAttempt,
   ContactStatus,
+  ContactMethod,
   Customer,
   AgentType
 } from '@/types';

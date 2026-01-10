@@ -2,7 +2,8 @@ import { PhoneAgent } from './PhoneAgent';
 import { AgenticRAGService } from '@/services/memory/AgenticRAGService';
 import { MemoryManager } from '@/services/memory/MemoryManager';
 import { ConversationService } from '@/services/llm/ConversationService';
-import { createLogger } from '@/utils/logger';
+import { createLogger, Logger } from '@/utils/logger';
+import { Task, Customer, TaskStatus, ContactMethod } from '@/types';
 
 /**
  * Enhanced Phone Agent with Agentic RAG capabilities
