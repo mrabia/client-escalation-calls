@@ -21,6 +21,7 @@
     "noUnusedParameters": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "moduleResolution": "node",
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
@@ -40,5 +41,8 @@
     "dist",
     "**/*.test.ts",
     "**/*.spec.ts"
-  ]
+  ],
+  "ts-node": {
+    "require": ["tsconfig-paths/register"]
+  }
 }
