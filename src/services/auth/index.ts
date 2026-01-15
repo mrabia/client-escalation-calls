@@ -5,6 +5,8 @@
 
 export { AuthService } from './AuthService';
 export { AuthorizationService, ROLE_PERMISSIONS } from './AuthorizationService';
+export { MFAService, getMFAService } from './MFAService';
+export { PasswordResetService, getPasswordResetService } from './PasswordResetService';
 
 export type { 
   User,
@@ -19,3 +21,14 @@ export type {
   Permission,
   RolePermissions,
 } from './AuthorizationService';
+
+export type {
+  MFASetupResult,
+  MFAVerificationResult,
+  MFAUserData,
+} from './MFAService';
+
+export type {
+  PasswordResetRequest,
+  PasswordResetResult,
+} from './PasswordResetService';

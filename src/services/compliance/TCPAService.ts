@@ -1,5 +1,6 @@
 import { Logger } from 'winston';
 import { RedisClientType } from 'redis';
+import { config } from '@/config';
 
 /**
  * TCPA Compliance Service
@@ -15,17 +16,55 @@ export class TCPAService {
   private redis: RedisClientType;
   private logger: Logger;
   
-  // TCPA configuration
-  private readonly MAX_CALLS_PER_DAY = 3;
-  private readonly MAX_SMS_PER_DAY = 3;
-  private readonly MAX_EMAILS_PER_DAY = 5;
-  private readonly CALL_HOURS_START = 8; // 8 AM
-  private readonly CALL_HOURS_END = 21; // 9 PM
+  // TCPA configuration from environment
+  private readonly maxContactsPerDay: number;
+  private readonly callHoursStart: number;
+  private readonly callHoursEnd: number;
+  private readonly defaultTimezone: string;
+  private readonly enabled: boolean;
+  private readonly dncEnabled: boolean;
   private readonly OPT_OUT_KEYWORDS = ['STOP', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT', 'OPTOUT'];
   
   constructor(redis: RedisClientType, logger: Logger) {
     this.redis = redis;
     this.logger = logger;
+    
+    // Load configuration from environment
+    this.maxContactsPerDay = config.business.maxDailyContactsPerCustomer;
+    this.defaultTimezone = config.business.defaultTimezone;
+    this.enabled = config.compliance.enableTcpaCompliance;
+    this.dncEnabled = config.compliance.enableDoNotCallCheck;
+    
+    // Parse business hours (format: "09:00" -> 9)
+    this.callHoursStart = this.parseHour(config.business.businessHoursStart, 8);
+    this.callHoursEnd = this.parseHour(config.business.businessHoursEnd, 21);
+    
+    this.logger.info('TCPA Service initialized', {
+      enabled: this.enabled,
+      dncEnabled: this.dncEnabled,
+      maxContactsPerDay: this.maxContactsPerDay,
+      businessHours: `${this.callHoursStart}:00 - ${this.callHoursEnd}:00`,
+      timezone: this.defaultTimezone
+    });
+  }
+  
+  /**
+   * Parse hour from time string (e.g., "09:00" -> 9)
+   */
+  private parseHour(timeStr: string, defaultHour: number): number {
+    try {
+      const hour = parseInt(timeStr.split(':')[0], 10);
+      return isNaN(hour) ? defaultHour : hour;
+    } catch {
+      return defaultHour;
+    }
+  }
+  
+  /**
+   * Check if TCPA compliance is enabled
+   */
+  isEnabled(): boolean {
+    return this.enabled;
   }
   
   /**
@@ -189,11 +228,10 @@ export class TCPAService {
     const key = `tcpa:frequency:${customerId}:${channel}:${today}`;
     
     const count = await this.redis.get(key);
-    const currentCount = count ? parseInt(count) : 0;
+    const currentCount = count ? Number.parseInt(count, 10) : 0;
     
-    const maxLimit = channel === 'phone' ? this.MAX_CALLS_PER_DAY :
-                     channel === 'sms' ? this.MAX_SMS_PER_DAY :
-                     this.MAX_EMAILS_PER_DAY;
+    // Use config-based max contacts per day (same limit for all channels)
+    const maxLimit = this.maxContactsPerDay;
     
     if (currentCount >= maxLimit) {
       const tomorrow = new Date();
@@ -251,20 +289,20 @@ export class TCPAService {
       const localTime = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
       const hour = localTime.getHours();
       
-      if (hour < this.CALL_HOURS_START || hour >= this.CALL_HOURS_END) {
+      if (hour < this.callHoursStart || hour >= this.callHoursEnd) {
         const retryAfter = new Date(localTime);
-        if (hour >= this.CALL_HOURS_END) {
-          // After 9 PM, retry tomorrow at 8 AM
+        if (hour >= this.callHoursEnd) {
+          // After end time, retry tomorrow at start time
           retryAfter.setDate(retryAfter.getDate() + 1);
-          retryAfter.setHours(this.CALL_HOURS_START, 0, 0, 0);
+          retryAfter.setHours(this.callHoursStart, 0, 0, 0);
         } else {
-          // Before 8 AM, retry today at 8 AM
-          retryAfter.setHours(this.CALL_HOURS_START, 0, 0, 0);
+          // Before start time, retry today at start time
+          retryAfter.setHours(this.callHoursStart, 0, 0, 0);
         }
         
         return {
           allowed: false,
-          reason: `Outside permitted calling hours (${this.CALL_HOURS_START} AM - ${this.CALL_HOURS_END} PM ${timezone})`,
+          reason: `Outside permitted calling hours (${this.callHoursStart}:00 - ${this.callHoursEnd}:00 ${timezone})`,
           retryAfter
         };
       }

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { RedisClientType } from 'redis';
 import { Logger } from 'winston';
+import { config } from '@/config';
 
 /**
  * Rate Limiter Configuration
@@ -159,6 +160,24 @@ export class RateLimiter {
 }
 
 /**
+ * Create rate limiter from environment config
+ * Uses RATE_LIMIT_WINDOW_MS and RATE_LIMIT_MAX_REQUESTS from config
+ */
+export const createRateLimiterFromConfig = (
+  redis: RedisClientType,
+  logger: Logger,
+  keyPrefix: string = 'ratelimit:api'
+) => new RateLimiter(
+  redis,
+  logger,
+  {
+    windowMs: config.rateLimit.windowMs,
+    maxRequests: config.rateLimit.maxRequests,
+    keyPrefix
+  }
+);
+
+/**
  * Pre-configured rate limiters for common use cases
  */
 export const rateLimitPresets = {
@@ -179,14 +198,14 @@ export const rateLimitPresets = {
   
   /**
    * Standard rate limit for API endpoints
-   * 100 requests per minute
+   * Uses values from config (RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS)
    */
   api: (redis: RedisClientType, logger: Logger) => new RateLimiter(
     redis,
     logger,
     {
-      windowMs: 60 * 1000, // 1 minute
-      maxRequests: 100,
+      windowMs: config.rateLimit.windowMs,
+      maxRequests: config.rateLimit.maxRequests,
       keyPrefix: 'ratelimit:api'
     }
   ),

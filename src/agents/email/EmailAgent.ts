@@ -4,6 +4,7 @@ import { logger } from '@/utils/logger';
 import { DatabaseService } from '@/core/services/database';
 import { RedisService } from '@/core/services/redis';
 import { MessageQueueService } from '@/core/services/messageQueue';
+import { config as appConfig } from '@/config';
 import {
   Task,
   TaskStatus,
@@ -605,4 +606,44 @@ Best regards,
       logger.error(`Error shutting down Email Agent ${this.agentId}:`, error);
     }
   }
+}
+
+/**
+ * Create EmailConfig from centralized application config
+ * Uses environment variables: SMTP_*, IMAP_*
+ */
+export function createEmailConfigFromEnv(): EmailConfig {
+  return {
+    smtp: {
+      host: appConfig.email.smtp.host,
+      port: appConfig.email.smtp.port,
+      secure: appConfig.email.smtp.secure,
+      auth: {
+        user: appConfig.email.smtp.user || '',
+        pass: appConfig.email.smtp.password || ''
+      }
+    },
+    imap: {
+      host: appConfig.email.imap.host,
+      port: appConfig.email.imap.port,
+      secure: appConfig.email.imap.secure,
+      auth: {
+        user: appConfig.email.imap.user || '',
+        pass: appConfig.email.imap.password || ''
+      }
+    },
+    defaultFrom: `${appConfig.email.smtp.fromName} <${appConfig.email.smtp.fromEmail}>`,
+    templates: {}
+  };
+}
+
+/**
+ * Check if email configuration is valid
+ */
+export function isEmailConfigValid(): boolean {
+  return Boolean(
+    appConfig.email.smtp.host &&
+    appConfig.email.smtp.user &&
+    appConfig.email.smtp.password
+  );
 }

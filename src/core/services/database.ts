@@ -1,16 +1,26 @@
-import { Pool, PoolClient, QueryResult } from 'pg';
+import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg';
 import { logger } from '@/utils/logger';
+import { config } from '@/config';
 
 export class DatabaseService {
   private pool: Pool;
   private isInitialized = false;
 
   constructor() {
+    // Use config for database connection with pool settings from environment
     this.pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      max: 20,
+      connectionString: config.database.url,
+      max: config.database.poolMax,
+      min: config.database.poolMin,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
+      connectionTimeoutMillis: 5000,
+      ssl: config.database.ssl ? { rejectUnauthorized: false } : false,
+    });
+    
+    logger.info('Database pool configured', {
+      poolMin: config.database.poolMin,
+      poolMax: config.database.poolMax,
+      ssl: config.database.ssl
     });
 
     // Handle pool errors
@@ -49,7 +59,7 @@ export class DatabaseService {
     }
   }
 
-  async query<T = any>(text: string, params?: any[]): Promise<QueryResult<T>> {
+  async query<T extends QueryResultRow = any>(text: string, params?: any[]): Promise<QueryResult<T>> {
     if (!this.isInitialized) {
       throw new Error('Database service not initialized');
     }

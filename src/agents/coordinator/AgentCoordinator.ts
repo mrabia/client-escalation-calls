@@ -4,6 +4,7 @@ import { DatabaseService } from '@/core/services/database';
 import { RedisService } from '@/core/services/redis';
 import { MessageQueueService } from '@/core/services/messageQueue';
 import { logger } from '@/utils/logger';
+import { config } from '@/config';
 import {
   Agent,
   AgentType,
@@ -156,6 +157,25 @@ export class AgentCoordinator {
 
   async assignTask(task: Task): Promise<void> {
     try {
+      // Check feature flags before assigning task
+      if (!this.isTaskTypeEnabled(task.type)) {
+        logger.warn('Task type disabled by feature flag', {
+          taskId: task.id,
+          type: task.type
+        });
+        
+        task.status = TaskStatus.CANCELLED;
+        await this.storeTaskInDatabase(task);
+        
+        this.io.emit('task:cancelled', {
+          task,
+          timestamp: new Date(),
+          reason: 'feature_disabled'
+        });
+        
+        return;
+      }
+      
       // Find available agent for the task
       const agent = await this.findBestAgent(task);
       
@@ -188,6 +208,24 @@ export class AgentCoordinator {
         error: error instanceof Error ? error.message : String(error)
       });
       throw error;
+    }
+  }
+  
+  /**
+   * Check if a task type is enabled by feature flags
+   */
+  private isTaskTypeEnabled(taskType: TaskType): boolean {
+    switch (taskType) {
+      case TaskType.SEND_EMAIL:
+        return config.features.emailAgent;
+      case TaskType.MAKE_CALL:
+        return config.features.phoneAgent;
+      case TaskType.SEND_SMS:
+        return config.features.smsAgent;
+      case TaskType.RESEARCH_CUSTOMER:
+        return config.features.researchAgent;
+      default:
+        return true;
     }
   }
 
@@ -492,7 +530,7 @@ export class AgentCoordinator {
     } catch (err) {
       logger.error('Failed to handle task failure:', {
         taskId,
-        error: err.message
+        error: err instanceof Error ? err.message : String(err)
       });
     }
   }

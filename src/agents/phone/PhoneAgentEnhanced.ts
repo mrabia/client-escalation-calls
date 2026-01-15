@@ -197,26 +197,53 @@ export class PhoneAgentEnhanced extends PhoneAgent {
       
       if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
         this.logger.warn('Twilio not configured, simulating call');
-        // Simulate call for testing/development
         await this.simulateCall(customer, context);
         return;
       }
+
+      // Validate customer phone number
+      const customerPhone = customer.phone || customer.mobile;
+      if (!customerPhone) {
+        throw new Error('Customer has no phone number');
+      }
       
-      // TODO: Integrate with Twilio SDK
-      // const twilio = require('twilio')(twilioAccountSid, twilioAuthToken);
-      // const call = await twilio.calls.create({
-      //   to: customer.phone,
-      //   from: twilioPhoneNumber,
-      //   url: `${process.env.API_BASE_URL}/api/voice/twiml/${context.sessionId}`,
-      //   statusCallback: `${process.env.API_BASE_URL}/api/voice/status/${context.sessionId}`,
-      //   statusCallbackMethod: 'POST'
-      // });
+      // Initialize Twilio client
+      const twilio = require('twilio')(twilioAccountSid, twilioAuthToken);
       
-      this.logger.info(`Call initiated to ${customer.phone} with RAG context`);
+      // Create the call
+      const call = await twilio.calls.create({
+        to: customerPhone,
+        from: twilioPhoneNumber,
+        url: `${process.env.API_BASE_URL || 'http://localhost:3000'}/api/v1/twilio/voice/twiml/${context.sessionId || 'default'}`,
+        statusCallback: `${process.env.API_BASE_URL || 'http://localhost:3000'}/api/v1/twilio/voice/status`,
+        statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
+        statusCallbackMethod: 'POST',
+        record: process.env.TWILIO_RECORD_CALLS === 'true',
+        timeout: 30,
+        machineDetection: 'Enable',
+      });
+      
+      this.logger.info(`Twilio call initiated`, {
+        callSid: call.sid,
+        to: customerPhone,
+        from: twilioPhoneNumber,
+        status: call.status
+      });
+
+      // Store call SID for tracking
+      if (context.sessionId) {
+        await this.memoryManager.updateSession(context.sessionId, {
+          metadata: {
+            callSid: call.sid,
+            callStatus: call.status,
+            callInitiatedAt: new Date()
+          }
+        });
+      }
       
     } catch (error) {
       this.logger.error('Failed to initiate call', { error });
-      throw new Error(`Call initiation failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
+      throw new Error(`Call initiation failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
   

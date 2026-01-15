@@ -12,6 +12,9 @@ import { DatabaseService } from './core/services/database';
 import { RedisService } from './core/services/redis';
 import { MessageQueueService } from './core/services/messageQueue';
 import { AgentCoordinator } from './agents/coordinator/AgentCoordinator';
+import { getMemorySystem } from './services/memory';
+import { config } from './config';
+import apiRoutes from './routes';
 
 // Load environment variables
 dotenv.config();
@@ -20,10 +23,10 @@ class Application {
   private app: express.Application;
   private server: any;
   private io: SocketServer;
-  private agentCoordinator: AgentCoordinator;
-  private dbService: DatabaseService;
-  private redisService: RedisService;
-  private mqService: MessageQueueService;
+  private agentCoordinator!: AgentCoordinator;
+  private dbService!: DatabaseService;
+  private redisService!: RedisService;
+  private mqService!: MessageQueueService;
 
   constructor() {
     this.app = express();
@@ -35,23 +38,74 @@ class Application {
       }
     });
 
-    this.initializeServices();
+    // Synchronous initialization only in constructor
     this.initializeMiddleware();
     this.initializeRoutes();
     this.initializeErrorHandling();
   }
 
+  public async initialize(): Promise<void> {
+    // Async initialization moved out of constructor
+    await this.initializeServices();
+  }
+
   private async initializeServices(): Promise<void> {
     try {
-      // Initialize core services
+      // Initialize core services with graceful fallback
       this.dbService = new DatabaseService();
-      await this.dbService.initialize();
-
       this.redisService = new RedisService();
-      await this.redisService.initialize();
-
       this.mqService = new MessageQueueService();
-      await this.mqService.initialize();
+
+      // Try to initialize database (optional in dev mode)
+      if (process.env.DATABASE_URL) {
+        try {
+          await this.dbService.initialize();
+          logger.info('Database service initialized');
+        } catch (dbError) {
+          logger.warn('Database not available - running without database', { error: dbError instanceof Error ? dbError.message : String(dbError) });
+        }
+      } else {
+        logger.info('DATABASE_URL not set - skipping database initialization');
+      }
+
+      // Try to initialize Redis (optional in dev mode)
+      if (process.env.REDIS_URL) {
+        try {
+          await this.redisService.initialize();
+          logger.info('Redis service initialized');
+        } catch (redisError) {
+          logger.warn('Redis not available - running without Redis', { error: redisError instanceof Error ? redisError.message : String(redisError) });
+        }
+      } else {
+        logger.info('REDIS_URL not set - skipping Redis initialization');
+      }
+
+      // Try to initialize message queue (optional in dev mode)
+      if (process.env.RABBITMQ_URL) {
+        try {
+          await this.mqService.initialize();
+          logger.info('Message queue service initialized');
+        } catch (mqError) {
+          logger.warn('Message queue not available - running without MQ', { error: mqError instanceof Error ? mqError.message : String(mqError) });
+        }
+      } else {
+        logger.info('RABBITMQ_URL not set - skipping message queue initialization');
+      }
+
+      // Initialize memory system (if enabled)
+      if (config.features.vectorMemory) {
+        try {
+          const memorySystem = getMemorySystem();
+          await memorySystem.initialize();
+          logger.info('Memory system initialized');
+        } catch (memoryError) {
+          logger.warn('Memory system not available - running without memory', { 
+            error: memoryError instanceof Error ? memoryError.message : String(memoryError) 
+          });
+        }
+      } else {
+        logger.info('Vector memory feature disabled - skipping memory system initialization');
+      }
 
       // Initialize agent coordinator
       this.agentCoordinator = new AgentCoordinator({
@@ -61,12 +115,21 @@ class Application {
         io: this.io
       });
 
-      await this.agentCoordinator.initialize();
+      try {
+        await this.agentCoordinator.initialize();
+        logger.info('Agent coordinator initialized');
+      } catch (coordError) {
+        logger.warn('Agent coordinator initialization failed', { error: coordError instanceof Error ? coordError.message : String(coordError) });
+      }
 
-      logger.info('All services initialized successfully');
+      logger.info('Services initialization complete');
     } catch (error) {
       logger.error('Failed to initialize services:', error);
-      process.exit(1);
+      // In development, continue anyway
+      if (process.env.NODE_ENV !== 'development') {
+        process.exit(1);
+      }
+      logger.warn('Continuing in development mode with limited functionality');
     }
   }
 
@@ -103,14 +166,8 @@ class Application {
       });
     });
 
-    // API routes placeholder
-    this.app.use('/api/v1', (req, res) => {
-      res.status(200).json({
-        message: 'Client Escalation Calls API v1',
-        version: '1.0.0',
-        documentation: '/api/v1/docs'
-      });
-    });
+    // API routes
+    this.app.use('/api/v1', apiRoutes);
 
     // Socket.IO connection handling
     this.io.on('connection', (socket) => {
@@ -195,6 +252,16 @@ class Application {
         await this.mqService.close();
       }
 
+      // Shutdown memory system
+      try {
+        const memorySystem = getMemorySystem();
+        if (memorySystem.isInitialized()) {
+          await memorySystem.shutdown();
+        }
+      } catch {
+        // Memory system may not be initialized
+      }
+
       logger.info('Graceful shutdown completed');
       process.exit(0);
     } catch (error) {
@@ -219,6 +286,7 @@ class Application {
 async function bootstrap() {
   try {
     const app = new Application();
+    await app.initialize();
     await app.start();
   } catch (error) {
     logger.error('Failed to start application:', error);

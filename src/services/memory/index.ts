@@ -16,6 +16,13 @@ export { MemoryManager } from './MemoryManager';
 export { AgenticRAGService } from './AgenticRAGService';
 export { MemoryConsolidationService } from './MemoryConsolidationService';
 
+// Memory System Service (singleton for app-wide access)
+export { 
+  MemorySystemService, 
+  getMemorySystem, 
+  initializeMemorySystem 
+} from './MemorySystemService';
+
 // Type Exports
 export type {
   MemoryQueryResult,

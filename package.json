@@ -19,7 +19,7 @@
     "test:coverage": "jest --coverage --passWithNoTests",
     "lint": "eslint src/**/*.ts",
     "typecheck": "tsc --noEmit",
-    "dev": "nodemon -r tsconfig-paths/register src/index.ts",
+    "dev": "nodemon --exec \"ts-node --transpile-only -r tsconfig-paths/register\" src/index.ts",
     "docker:build": "docker build -t client-escalation-calls .",
     "docker:run": "docker run -p 3000:3000 client-escalation-calls"
   },

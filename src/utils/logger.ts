@@ -1,5 +1,6 @@
 import winston from 'winston';
-import path from 'path';
+import path from 'node:path';
+import { getPIIMasker } from './piiMasker';
 
 // Export Logger type for use in other modules
 export type Logger = winston.Logger;
@@ -7,11 +8,37 @@ export type Logger = winston.Logger;
 const logDir = process.env.LOG_DIR || 'logs';
 const logLevel = process.env.LOG_LEVEL || 'info';
 
+/**
+ * Custom format to mask PII data in logs
+ */
+const piiMaskFormat = winston.format((info) => {
+  const masker = getPIIMasker();
+  
+  if (!masker.isEnabled()) {
+    return info;
+  }
+  
+  // Mask the message
+  if (typeof info.message === 'string') {
+    info.message = masker.maskString(info.message);
+  }
+  
+  // Mask metadata
+  const { level, message, timestamp, stack, label, ...meta } = info;
+  if (Object.keys(meta).length > 0) {
+    const maskedMeta = masker.maskObject(meta);
+    Object.assign(info, maskedMeta);
+  }
+  
+  return info;
+});
+
 const logFormat = winston.format.combine(
   winston.format.timestamp({
     format: 'YYYY-MM-DD HH:mm:ss.SSS'
   }),
   winston.format.errors({ stack: true }),
+  piiMaskFormat(),
   winston.format.json(),
   winston.format.printf(({ timestamp, level, message, stack, ...meta }) => {
     let log = `${timestamp} [${level.toUpperCase()}]: ${message}`;
@@ -21,7 +48,7 @@ const logFormat = winston.format.combine(
     }
     
     if (stack) {
-      log += `\n${stack}`;
+      log += `\n${typeof stack === 'string' ? stack : JSON.stringify(stack)}`;
     }
     
     return log;

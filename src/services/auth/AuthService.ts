@@ -7,6 +7,7 @@ import jwt, { SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { createClient } from 'redis';
 import crypto from 'crypto';
+import { config } from '@/config';
 
 export interface User {
   id: string;
@@ -37,16 +38,21 @@ export class AuthService {
   private redisClient: any;
   private jwtSecret: string;
   private jwtRefreshSecret: string;
-  private accessTokenExpiry: string = '15m';
-  private refreshTokenExpiry: string = '7d';
+  private accessTokenExpiry: string;
+  private refreshTokenExpiry: string;
+  private bcryptRounds: number;
 
   constructor() {
-    this.jwtSecret = process.env.JWT_SECRET || 'default-secret-change-in-production';
-    this.jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'default-refresh-secret-change-in-production';
+    // Use centralized config for all auth settings
+    this.jwtSecret = config.auth.jwtSecret || 'default-secret-change-in-production';
+    this.jwtRefreshSecret = config.auth.jwtRefreshSecret || 'default-refresh-secret-change-in-production';
+    this.accessTokenExpiry = config.auth.jwtExpiresIn;
+    this.refreshTokenExpiry = config.auth.jwtRefreshExpiresIn;
+    this.bcryptRounds = config.auth.bcryptRounds;
     
-    // Initialize Redis client for session management
+    // Initialize Redis client for session management using config
     this.redisClient = createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379',
+      url: config.redis.url,
     });
     
     this.redisClient.connect().catch(console.error);
@@ -184,7 +190,7 @@ export class AuthService {
       sessionId,
     };
 
-    const options: SignOptions = { expiresIn: this.accessTokenExpiry };
+    const options: SignOptions = { expiresIn: this.accessTokenExpiry as jwt.SignOptions['expiresIn'] };
     return jwt.sign(payload, this.jwtSecret, options);
   }
 
@@ -199,7 +205,7 @@ export class AuthService {
       sessionId,
     };
 
-    const options: SignOptions = { expiresIn: this.refreshTokenExpiry };
+    const options: SignOptions = { expiresIn: this.refreshTokenExpiry as jwt.SignOptions['expiresIn'] };
     return jwt.sign(payload, this.jwtRefreshSecret, options);
   }
 
@@ -294,7 +300,7 @@ export class AuthService {
    * Hash password
    */
   async hashPassword(password: string): Promise<string> {
-    const salt = await bcrypt.genSalt(12);
+    const salt = await bcrypt.genSalt(this.bcryptRounds);
     return bcrypt.hash(password, salt);
   }
 

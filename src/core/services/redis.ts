@@ -1,17 +1,27 @@
 import { createClient, RedisClientType } from 'redis';
 import { logger } from '@/utils/logger';
+import { config } from '@/config';
 
 export class RedisService {
   private client: RedisClientType;
   private isInitialized = false;
+  private defaultTtl: number;
 
   constructor() {
+    // Use config for Redis connection settings
+    this.defaultTtl = config.redis.ttl;
+    
     this.client = createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379',
+      url: config.redis.url,
       socket: {
         connectTimeout: 5000,
         reconnectStrategy: (retries: number) => Math.min(retries * 1000, 5000)
       }
+    });
+    
+    logger.info('Redis client configured', {
+      url: config.redis.url.replace(/\/\/.*@/, '//***@'), // Hide password in logs
+      defaultTtl: this.defaultTtl
     });
 
     this.client.on('connect', () => {

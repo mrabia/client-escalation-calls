@@ -12,24 +12,46 @@ import { Logger } from 'winston';
  * Uses AES-256-GCM for encryption (FIPS 140-2 compliant)
  */
 export class EncryptionService {
-  private logger: Logger;
+  private readonly logger: Logger;
   private encryptionKey: Buffer;
-  private algorithm = 'aes-256-gcm';
+  private readonly algorithm = 'aes-256-gcm';
+  private initialized: boolean = false;
   
-  constructor(logger: Logger) {
+  constructor(logger: Logger, encryptionKey?: string) {
     this.logger = logger;
     
-    // Get encryption key from environment
-    const keyString = process.env.ENCRYPTION_KEY;
+    // Get encryption key from parameter or environment
+    const keyString = encryptionKey || process.env.ENCRYPTION_KEY;
+    
     if (!keyString) {
-      throw new Error('ENCRYPTION_KEY environment variable is required');
+      // In development, log warning but don't throw - allow graceful degradation
+      this.logger.warn('ENCRYPTION_KEY not set - encryption service will be unavailable');
+      this.encryptionKey = Buffer.alloc(32); // Placeholder
+      return;
     }
     
-    // Key must be 32 bytes for AES-256
-    this.encryptionKey = Buffer.from(keyString, 'hex');
-    if (this.encryptionKey.length !== 32) {
-      throw new Error('ENCRYPTION_KEY must be 32 bytes (64 hex characters)');
+    // Support both hex-encoded keys (64 chars) and plain string keys (32 chars)
+    if (keyString.length === 64) {
+      // Hex-encoded 32-byte key
+      this.encryptionKey = Buffer.from(keyString, 'hex');
+    } else if (keyString.length >= 32) {
+      // Plain string key - use first 32 chars
+      this.encryptionKey = Buffer.from(keyString.substring(0, 32), 'utf8');
+    } else {
+      // Pad short keys (not recommended for production)
+      this.logger.warn('ENCRYPTION_KEY is shorter than 32 characters - padding applied');
+      this.encryptionKey = Buffer.from(keyString.padEnd(32, '0'), 'utf8');
     }
+    
+    this.initialized = true;
+    this.logger.info('Encryption service initialized');
+  }
+  
+  /**
+   * Check if encryption service is ready
+   */
+  isReady(): boolean {
+    return this.initialized;
   }
   
   /**

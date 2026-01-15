@@ -234,24 +234,33 @@ export class SMSAgentEnhanced extends SmsAgent {
       
       if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
         this.logger.warn('Twilio not configured, simulating SMS');
-        // Simulate SMS for testing/development
         return this.simulateSMS(phone, content);
       }
+
+      // Validate phone number
+      if (!phone) {
+        throw new Error('Phone number is required');
+      }
       
-      // TODO: Integrate with Twilio SDK
-      // const twilio = require('twilio')(twilioAccountSid, twilioAuthToken);
-      // const message = await twilio.messages.create({
-      //   body: content,
-      //   to: phone,
-      //   from: twilioPhoneNumber,
-      //   statusCallback: `${process.env.API_BASE_URL}/api/sms/status`
-      // });
-      // 
-      // this.logger.info(`SMS sent to ${phone}, message ID: ${message.sid}`);
-      // return { success: true, messageId: message.sid };
+      // Initialize Twilio client
+      const twilio = require('twilio')(twilioAccountSid, twilioAuthToken);
       
-      this.logger.info(`SMS sent to ${phone}`);
-      return { success: true };
+      // Send the SMS
+      const message = await twilio.messages.create({
+        body: content,
+        to: phone,
+        from: twilioPhoneNumber,
+        statusCallback: `${process.env.API_BASE_URL || 'http://localhost:3000'}/api/v1/twilio/sms/status`,
+      });
+      
+      this.logger.info(`Twilio SMS sent`, {
+        messageSid: message.sid,
+        to: phone,
+        from: twilioPhoneNumber,
+        status: message.status
+      });
+      
+      return { success: true, messageId: message.sid };
       
     } catch (error) {
       this.logger.error('Failed to send SMS', { error, phone });
