@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { Logger } from 'winston';
 
 /**
@@ -13,9 +13,9 @@ import { Logger } from 'winston';
  */
 export class EncryptionService {
   private readonly logger: Logger;
-  private encryptionKey: Buffer;
+  private readonly encryptionKey: Buffer;
   private readonly algorithm = 'aes-256-gcm';
-  private initialized: boolean = false;
+  private readonly initialized: boolean = false;
   
   constructor(logger: Logger, encryptionKey?: string) {
     this.logger = logger;
@@ -43,7 +43,7 @@ export class EncryptionService {
       this.encryptionKey = Buffer.from(keyString.padEnd(32, '0'), 'utf8');
     }
     
-    this.initialized = true;
+    this.initialized = true;  
     this.logger.info('Encryption service initialized');
   }
   
@@ -64,7 +64,7 @@ export class EncryptionService {
       const iv = crypto.randomBytes(16);
       
       // Create cipher
-      const cipher = crypto.createCipheriv(this.algorithm, this.encryptionKey, iv) as crypto.CipherGCM;
+      const cipher = crypto.createCipheriv(this.algorithm, this.encryptionKey, iv);
       
       // Encrypt
       let encrypted = cipher.update(plaintext, 'utf8', 'hex');
@@ -103,7 +103,7 @@ export class EncryptionService {
       const encrypted = parts[2];
       
       // Create decipher
-      const decipher = crypto.createDecipheriv(this.algorithm, this.encryptionKey, iv) as crypto.DecipherGCM;
+      const decipher = crypto.createDecipheriv(this.algorithm, this.encryptionKey, iv);
       decipher.setAuthTag(authTag);
       
       // Decrypt

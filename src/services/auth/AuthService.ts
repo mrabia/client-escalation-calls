@@ -6,8 +6,10 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { createClient } from 'redis';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { config } from '@/config';
+import { DatabaseService } from '@/core/services/database';
+import { createLogger } from '@/utils/logger';
 
 export interface User {
   id: string;
@@ -35,14 +37,17 @@ export interface TokenPayload {
 }
 
 export class AuthService {
-  private redisClient: any;
-  private jwtSecret: string;
-  private jwtRefreshSecret: string;
-  private accessTokenExpiry: string;
-  private refreshTokenExpiry: string;
-  private bcryptRounds: number;
+  private readonly redisClient: any;
+  private readonly jwtSecret: string;
+  private readonly jwtRefreshSecret: string;
+  private readonly accessTokenExpiry: string;
+  private readonly refreshTokenExpiry: string;
+  private readonly bcryptRounds: number;
+  private readonly db: DatabaseService;
+  private readonly logger = createLogger('AuthService');
 
   constructor() {
+    this.db = new DatabaseService();
     // Use centralized config for all auth settings
     this.jwtSecret = config.auth.jwtSecret || 'default-secret-change-in-production';
     this.jwtRefreshSecret = config.auth.jwtRefreshSecret || 'default-refresh-secret-change-in-production';
@@ -103,7 +108,7 @@ export class AuthService {
       // Check if session exists and is valid
       const session = await this.getSession(payload.sessionId);
       
-      if (!session || session.refreshToken !== refreshToken) {
+      if (session?.refreshToken !== refreshToken) {
         throw new Error('Invalid refresh token');
       }
 
@@ -116,7 +121,7 @@ export class AuthService {
       // Get user
       const user = await this.getUserById(payload.userId);
       
-      if (!user || !user.active) {
+      if (!user?.active) {
         throw new Error('User not found or inactive');
       }
 
@@ -126,6 +131,8 @@ export class AuthService {
 
       return { accessToken, expiresIn };
     } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.logger.warn('Failed to refresh access token', { err });
       throw new Error('Invalid or expired refresh token');
     }
   }
@@ -160,6 +167,8 @@ export class AuthService {
 
       return payload;
     } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.logger.warn('Failed to validate access token', { err });
       throw new Error('Invalid or expired token');
     }
   }
@@ -280,7 +289,7 @@ export class AuthService {
    */
   private getTokenExpiry(expiry: string): number {
     const unit = expiry.slice(-1);
-    const value = parseInt(expiry.slice(0, -1));
+    const value = Number.parseInt(expiry.slice(0, -1), 10);
 
     switch (unit) {
       case 's':
@@ -315,18 +324,78 @@ export class AuthService {
    * Get user by email (placeholder - should query database)
    */
   private async getUserByEmail(email: string): Promise<User | null> {
-    // TODO: Implement database query
-    // This is a placeholder that should be replaced with actual database query
-    throw new Error('getUserByEmail not implemented - requires database integration');
+    await this.db.initialize();
+    const result = await this.db.query<{
+      id: string;
+      email: string;
+      password_hash: string;
+      role: User['role'];
+      first_name: string;
+      last_name: string;
+      is_active: boolean;
+      mfa_enabled: boolean;
+      created_at: Date;
+      updated_at: Date;
+    }>(
+      'SELECT id, email, password_hash, role, first_name, last_name, is_active, mfa_enabled, created_at, updated_at FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1',
+      [email]
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      return null;
+    }
+
+    return {
+      id: row.id,
+      email: row.email,
+      password: row.password_hash,
+      role: row.role,
+      name: `${row.first_name} ${row.last_name}`,
+      active: row.is_active,
+      mfaEnabled: row.mfa_enabled,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
   }
 
   /**
    * Get user by ID (placeholder - should query database)
    */
   private async getUserById(userId: string): Promise<User | null> {
-    // TODO: Implement database query
-    // This is a placeholder that should be replaced with actual database query
-    throw new Error('getUserById not implemented - requires database integration');
+    await this.db.initialize();
+    const result = await this.db.query<{
+      id: string;
+      email: string;
+      password_hash: string;
+      role: User['role'];
+      first_name: string;
+      last_name: string;
+      is_active: boolean;
+      mfa_enabled: boolean;
+      created_at: Date;
+      updated_at: Date;
+    }>(
+      'SELECT id, email, password_hash, role, first_name, last_name, is_active, mfa_enabled, created_at, updated_at FROM users WHERE id = $1 LIMIT 1',
+      [userId]
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      return null;
+    }
+
+    return {
+      id: row.id,
+      email: row.email,
+      password: row.password_hash,
+      role: row.role,
+      name: `${row.first_name} ${row.last_name}`,
+      active: row.is_active,
+      mfaEnabled: row.mfa_enabled,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
   }
 
   /**

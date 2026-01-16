@@ -1,0 +1,329 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: Application Alerts
+    folder: Escalation Alerts
+    interval: 1m
+    rules:
+      - uid: high-error-rate
+        title: High Error Rate
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) * 100
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: []
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - B
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 5
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: B
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          description: Error rate is above 5% for the last 5 minutes
+          summary: High application error rate detected
+        labels:
+          severity: critical
+        isPaused: false
+
+      - uid: high-response-time
+        title: High Response Time
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 2
+                    type: gt
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          description: P95 response time is above 2 seconds
+          summary: High response time detected
+        labels:
+          severity: warning
+        isPaused: false
+
+      - uid: auth-failures-spike
+        title: Authentication Failures Spike
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(auth_failures_total[5m])) * 300
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 50
+                    type: gt
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          description: More than 50 authentication failures in the last 5 minutes
+          summary: Possible brute force attack detected
+        labels:
+          severity: critical
+        isPaused: false
+
+      - uid: agent-task-failures
+        title: Agent Task Failures
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(agent_tasks_total{status="failure"}[10m])) / sum(rate(agent_tasks_total[10m])) * 100
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 10
+                    type: gt
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 10m
+        annotations:
+          description: Agent task failure rate is above 10%
+          summary: High agent task failure rate
+        labels:
+          severity: warning
+        isPaused: false
+
+      - uid: low-payment-collection
+        title: Low Payment Collection Rate
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: increase(payments_collected_total[1h])
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 1
+                    type: lt
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 2h
+        annotations:
+          description: No payments collected in the last 2 hours during business hours
+          summary: Payment collection may be stalled
+        labels:
+          severity: warning
+        isPaused: false
+
+      - uid: memory-cache-low-hit-rate
+        title: Low Memory Cache Hit Rate
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(memory_cache_hits_total[10m])) / (sum(rate(memory_cache_hits_total[10m])) + sum(rate(memory_cache_misses_total[10m]))) * 100
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 50
+                    type: lt
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        annotations:
+          description: Memory cache hit rate is below 50%
+          summary: Memory system performance degradation
+        labels:
+          severity: warning
+        isPaused: false
+
+contactPoints:
+  - orgId: 1
+    name: ops-team
+    receivers:
+      - uid: email-ops
+        type: email
+        settings:
+          addresses: ops@yourcompany.com
+          singleEmail: true
+      - uid: slack-alerts
+        type: slack
+        settings:
+          url: "${SLACK_WEBHOOK_URL}"
+          recipient: "#alerts-escalation"
+          mentionChannel: here
+
+policies:
+  - orgId: 1
+    receiver: ops-team
+    group_by:
+      - alertname
+      - severity
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 4h
+    routes:
+      - receiver: ops-team
+        matchers:
+          - severity = critical
+        group_wait: 10s
+        repeat_interval: 1h

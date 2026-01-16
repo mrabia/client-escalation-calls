@@ -2,7 +2,6 @@ import { SmsAgent } from './SmsAgent';
 import { AgenticRAGService } from '@/services/memory/AgenticRAGService';
 import { MemoryManager } from '@/services/memory/MemoryManager';
 import { createLogger, Logger } from '@/utils/logger';
-import { Task, Customer, TaskStatus, ContactMethod } from '@/types';
 
 /**
  * Enhanced SMS Agent with Agentic RAG capabilities
@@ -14,13 +13,15 @@ import { Task, Customer, TaskStatus, ContactMethod } from '@/types';
  * - Dynamic message optimization
  */
 export class SMSAgentEnhanced extends SmsAgent {
-  private agenticRAG: AgenticRAGService;
-  private memoryManager: MemoryManager;
-  private logger: Logger;
+  private readonly agenticRAG: AgenticRAGService;
+  private readonly memoryManager: MemoryManager;
+  private readonly logger: Logger;
+  private readonly db: any;
 
   constructor(agentId: string, config: any, dbService: any, redisService: any, mqService: any) {
     super(agentId, config, dbService, redisService, mqService);
     
+    this.db = dbService;
     this.agenticRAG = new AgenticRAGService();
     this.memoryManager = new MemoryManager();
     this.logger = createLogger(`SMSAgentEnhanced-${agentId}`);
@@ -56,6 +57,10 @@ export class SMSAgentEnhanced extends SmsAgent {
       
       if (!customer) {
         throw new Error(`Customer not found: ${task.customerId}`);
+      }
+
+      if (!customer.phone) {
+        throw new Error(`Customer ${task.customerId} has no phone number`);
       }
 
       // Create session
@@ -185,7 +190,7 @@ export class SMSAgentEnhanced extends SmsAgent {
 
       // Check for opt-out
       if (response.body.toUpperCase().includes('STOP')) {
-        await this.handleOptOut(response.from);
+        await this.processOptOut(response.from);
       }
 
       // Check for payment commitment
@@ -214,11 +219,63 @@ export class SMSAgentEnhanced extends SmsAgent {
   }
 
   /**
-   * Handle opt-out request
+   * Process opt-out request from SMS response
    */
-  private async handleOptOut(phone: string): Promise<void> {
-    // TODO: Implement opt-out in database
-    this.logger.info(`Opt-out request from ${phone}`);
+  private async processOptOut(phone: string): Promise<void> {
+    try {
+      const normalizedPhone = this.normalizePhone(phone);
+
+      // Insert/update sms_opt_outs table
+      await this.db.query(
+        `INSERT INTO sms_opt_outs (phone_number, opted_out_at, active)
+         VALUES ($1, $2, true)
+         ON CONFLICT (phone_number) DO UPDATE SET
+         opted_out_at = $2, active = true`,
+        [normalizedPhone, new Date()]
+      );
+
+      // Find customer by phone and update contact_restrictions
+      const customerResult = await this.db.query(
+        `SELECT id FROM customers WHERE phone = $1 OR mobile = $1`,
+        [normalizedPhone]
+      );
+
+      if (customerResult.rows.length > 0) {
+        const customerId = customerResult.rows[0].id;
+
+        // Add 'sms' to contact_restrictions if not already present
+        await this.db.query(
+          `UPDATE customer_profiles
+           SET contact_restrictions = array_append(
+             array_remove(contact_restrictions, 'sms'), 'sms'
+           ),
+           updated_at = NOW()
+           WHERE customer_id = $1`,
+          [customerId]
+        );
+
+        this.logger.info(`Opt-out recorded for customer ${customerId}`, { phone: normalizedPhone });
+      } else {
+        this.logger.info(`Opt-out recorded for phone (no customer found)`, { phone: normalizedPhone });
+      }
+    } catch (error) {
+      this.logger.error(`Failed to record opt-out for ${phone}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Normalize phone number to E.164 format
+   */
+  private normalizePhone(phone: string): string {
+    const cleaned = phone.replaceAll(/\D/g, '');
+    if (cleaned.length === 10) {
+      return '+1' + cleaned;
+    }
+    if (cleaned.length === 11 && cleaned.startsWith('1')) {
+      return '+' + cleaned;
+    }
+    return '+' + cleaned;
   }
 
   /**
@@ -275,7 +332,7 @@ export class SMSAgentEnhanced extends SmsAgent {
     this.logger.info(`[SIMULATION] Sending SMS to ${phone}`);
     this.logger.debug(`[SIMULATION] SMS content: ${content}`);
     
-    const simulatedMessageId = `sim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const simulatedMessageId = `sim_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     
     this.logger.info(`[SIMULATION] SMS sent, message ID: ${simulatedMessageId}`);
     return { success: true, messageId: simulatedMessageId };

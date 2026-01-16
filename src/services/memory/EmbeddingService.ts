@@ -9,12 +9,14 @@ import { Message } from '@/types';
  * Used for semantic search in the vector database.
  */
 export class EmbeddingService {
-  private openai: OpenAI;
-  private logger: Logger;
-  private model: string = 'text-embedding-3-small';
-  private dimensions: number = 1536;
-  private cache: Map<string, number[]> = new Map();
-  private maxCacheSize: number = 1000;
+  private readonly openai: OpenAI;
+  private readonly logger: Logger;
+  private readonly model: string = 'text-embedding-3-small';
+  private readonly dimensions: number = 1536;
+  private readonly cache: Map<string, number[]> = new Map();
+  private readonly maxCacheSize: number = 1000;
+  private cacheHits: number = 0;
+  private cacheMisses: number = 0;
 
   constructor() {
     this.openai = new OpenAI({
@@ -31,9 +33,11 @@ export class EmbeddingService {
       // Check cache first
       const cached = this.cache.get(text);
       if (cached) {
+        this.cacheHits++;
         this.logger.debug('Embedding cache hit');
         return cached;
       }
+      this.cacheMisses++;
 
       // Generate embedding
       const response = await this.openai.embeddings.create({
@@ -52,7 +56,8 @@ export class EmbeddingService {
 
     } catch (error) {
       this.logger.error('Failed to generate embedding', error);
-      throw new Error(`Embedding generation failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Embedding generation failed: ${errorMessage}`);
     }
   }
 
@@ -71,15 +76,18 @@ export class EmbeddingService {
       );
 
       // Find texts that need embedding
-      const uncachedIndices: number[] = [];
       const uncachedTexts: string[] = [];
       
       cachedResults.forEach((cached, index) => {
         if (!cached) {
-          uncachedIndices.push(index);
           uncachedTexts.push(texts[index]);
         }
       });
+
+      // Track hits and misses for batch
+      const hitCount = texts.length - uncachedTexts.length;
+      this.cacheHits += hitCount;
+      this.cacheMisses += uncachedTexts.length;
 
       // If all cached, return immediately
       if (uncachedTexts.length === 0) {
@@ -120,7 +128,8 @@ export class EmbeddingService {
 
     } catch (error) {
       this.logger.error('Failed to generate batch embeddings', error);
-      throw new Error(`Batch embedding generation failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Batch embedding generation failed: ${errorMessage}`);
     }
   }
 
@@ -138,7 +147,8 @@ export class EmbeddingService {
 
     } catch (error) {
       this.logger.error('Failed to embed conversation', error);
-      throw new Error(`Conversation embedding failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Conversation embedding failed: ${errorMessage}`);
     }
   }
 
@@ -169,7 +179,8 @@ export class EmbeddingService {
 
     } catch (error) {
       this.logger.error('Failed to embed memory', error);
-      throw new Error(`Memory embedding failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Memory embedding failed: ${errorMessage}`);
     }
   }
 
@@ -203,7 +214,8 @@ export class EmbeddingService {
 
     } catch (error) {
       this.logger.error('Failed to embed query', error);
-      throw new Error(`Query embedding failed: ${error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error)}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Query embedding failed: ${errorMessage}`);
     }
   }
 
@@ -242,7 +254,9 @@ export class EmbeddingService {
     // Implement LRU cache: remove oldest if cache is full
     if (this.cache.size >= this.maxCacheSize) {
       const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
     }
 
     this.cache.set(text, embedding);
@@ -253,6 +267,8 @@ export class EmbeddingService {
    */
   clearCache(): void {
     this.cache.clear();
+    this.cacheHits = 0;
+    this.cacheMisses = 0;
     this.logger.info('Embedding cache cleared');
   }
 
@@ -264,10 +280,11 @@ export class EmbeddingService {
     maxSize: number;
     hitRate: number;
   } {
+    const totalRequests = this.cacheHits + this.cacheMisses;
     return {
       size: this.cache.size,
       maxSize: this.maxCacheSize,
-      hitRate: 0 // TODO: Track hits/misses for accurate rate
+      hitRate: totalRequests > 0 ? this.cacheHits / totalRequests : 0
     };
   }
 

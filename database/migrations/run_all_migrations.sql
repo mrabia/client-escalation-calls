@@ -2,6 +2,7 @@
 -- Description: Runs all migrations in order
 -- Author: Manus AI
 -- Date: 2026-01-09
+-- Updated: 2026-01-15
 
 \echo 'Starting database migrations...'
 \echo ''
@@ -31,6 +32,29 @@
 \echo 'Migration 005 completed.'
 \echo ''
 
+\echo 'Running Migration 006: LLM Usage Tracking...'
+\i 006_create_llm_usage_tracking.sql
+\echo 'Migration 006 completed.'
+\echo ''
+
+\echo 'Running Migration 007: Users and Sessions...'
+\i 007_create_users_and_sessions.sql
+\echo 'Migration 007 completed.'
+\echo ''
+
+\echo 'Running Migration 008: Email Delivery Tracking...'
+\i 008_create_email_delivery_tracking.sql
+\echo 'Migration 008 completed.'
+\echo ''
+
 \echo 'All migrations completed successfully!'
 \echo ''
 \echo 'Database schema is ready.'
+\echo ''
+\echo 'Tables created:'
+\echo '  - Core: customers, customer_profiles, payment_records, agents'
+\echo '  - Workflow: campaigns, tasks'
+\echo '  - Communication: contact_attempts, templates, email_deliveries'
+\echo '  - Auth: users, user_sessions, api_keys, role_permissions'
+\echo '  - Compliance: audit_logs, opt_outs, compliance_rules'
+\echo '  - Analytics: system_metrics, llm_usage_logs, campaign_email_stats'

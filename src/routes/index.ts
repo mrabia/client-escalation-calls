@@ -11,6 +11,7 @@ import taskRoutes from './tasks.routes';
 import agentRoutes from './agents.routes';
 import paymentRoutes from './payments.routes';
 import twilioRoutes from './twilio.routes';
+import docsRoutes from './docs.routes';
 import { DatabaseService } from '../core/services/database';
 import { RedisService } from '../core/services/redis';
 import { logger } from '../utils/logger';
@@ -136,5 +137,6 @@ router.use('/tasks', taskRoutes);
 router.use('/agents', agentRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/twilio', twilioRoutes);
+router.use('/docs', docsRoutes);
 
 export default router;

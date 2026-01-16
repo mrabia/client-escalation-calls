@@ -1,0 +1,81 @@
+/* @theme client-escalation */
+@import "default";
+
+section {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  background: linear-gradient(135deg, #0B1020 0%, #0C1B3A 100%);
+  color: #E8EEFF;
+}
+
+h1, h2, h3 {
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+
+h2 {
+  font-size: 28px;
+  opacity: 0.95;
+}
+
+section strong {
+  color: #B9D6FF;
+}
+
+a {
+  color: #79C0FF;
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: center;
+}
+
+.cols > div {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 18px 18px;
+}
+
+/* 3-column layout used in one slide */
+.cols3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 18px;
+}
+
+th, td {
+  border: 1px solid rgba(255,255,255,0.12);
+  padding: 10px 12px;
+}
+
+th {
+  background: rgba(121,192,255,0.14);
+  color: #E8EEFF;
+  text-align: left;
+}
+
+td {
+  background: rgba(255,255,255,0.03);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* page number */
+section::after {
+  font-size: 14px;
+  color: rgba(232,238,255,0.65);
+}

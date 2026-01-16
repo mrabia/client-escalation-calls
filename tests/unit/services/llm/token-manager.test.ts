@@ -1,184 +1,194 @@
 /**
  * Token Manager Unit Tests
  * 
- * Tests token counting, budget management, and usage tracking
+ * Tests budget management and usage tracking
  */
 
-import { TokenManager } from '@/services/llm/TokenManager';
-import { logger } from '@/utils/logger';
+import { TokenManager } from '../../../../src/services/llm/TokenManager';
+import { LLMProvider } from '../../../../src/types/llm';
 
-describe('Token Manager Tests', () => {
+describe('TokenManager', () => {
   let tokenManager: TokenManager;
 
   beforeEach(() => {
-    tokenManager = new TokenManager(logger);
+    tokenManager = new TokenManager();
   });
 
-  describe('Token Counting', () => {
-    it('should count tokens in simple text', () => {
-      const text = 'Hello, world!';
-      const count = tokenManager.countTokens(text);
-
-      expect(count).toBeGreaterThan(0);
-      expect(typeof count).toBe('number');
+  describe('constructor', () => {
+    it('should initialize with default budget limits', () => {
+      const status = tokenManager.getBudgetStatus();
+      
+      expect(status.daily.limit).toBe(100);
+      expect(status.monthly.limit).toBe(2000);
     });
 
-    it('should count tokens in longer text', () => {
-      const shortText = 'Hello';
-      const longText = 'Hello '.repeat(100);
+    it('should accept custom budget limits', () => {
+      const customManager = new TokenManager({
+        daily: { total: 50, perCustomer: 2, perAgent: 10 },
+        monthly: { total: 1000, perCampaign: 200 },
+      });
 
-      const shortCount = tokenManager.countTokens(shortText);
-      const longCount = tokenManager.countTokens(longText);
-
-      expect(longCount).toBeGreaterThan(shortCount);
-    });
-
-    it('should count tokens in messages array', () => {
-      const messages = [
-        { role: 'user' as const, content: 'What is AI?' },
-        { role: 'assistant' as const, content: 'AI stands for Artificial Intelligence.' },
-      ];
-
-      const count = tokenManager.countMessagesTokens(messages);
-
-      expect(count).toBeGreaterThan(0);
-    });
-
-    it('should handle empty string', () => {
-      const count = tokenManager.countTokens('');
-      expect(count).toBe(0);
-    });
-
-    it('should handle unicode characters', () => {
-      const text = '你好世界';
-      const count = tokenManager.countTokens(text);
-
-      expect(count).toBeGreaterThan(0);
+      const status = customManager.getBudgetStatus();
+      expect(status.daily.limit).toBe(50);
+      expect(status.monthly.limit).toBe(1000);
     });
   });
 
-  describe('Budget Management', () => {
-    it('should set budget for model', () => {
-      tokenManager.setBudget('gpt-4', 10000);
+  describe('recordUsage', () => {
+    it('should record token usage', () => {
+      tokenManager.recordUsage(
+        LLMProvider.OPENAI,
+        'gpt-4',
+        { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+        0.01
+      );
 
-      const budget = tokenManager.getBudget('gpt-4');
-      expect(budget).toBe(10000);
+      const metrics = tokenManager.getUsageMetrics();
+      expect(metrics.totalTokens).toBe(150);
+      expect(metrics.totalCost).toBe(0.01);
     });
 
-    it('should track token usage', () => {
-      tokenManager.setBudget('gpt-4', 10000);
-      tokenManager.trackUsage('gpt-4', 100);
+    it('should accumulate multiple usage records', () => {
+      tokenManager.recordUsage(
+        LLMProvider.OPENAI,
+        'gpt-4',
+        { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+        0.01
+      );
+      tokenManager.recordUsage(
+        LLMProvider.OPENAI,
+        'gpt-4',
+        { promptTokens: 200, completionTokens: 100, totalTokens: 300 },
+        0.02
+      );
 
-      const remaining = tokenManager.getRemainingBudget('gpt-4');
-      expect(remaining).toBe(9900);
+      const metrics = tokenManager.getUsageMetrics();
+      expect(metrics.totalTokens).toBe(450);
+      expect(metrics.totalCost).toBe(0.03);
     });
 
-    it('should check if budget is available', () => {
-      tokenManager.setBudget('gpt-4', 1000);
-      tokenManager.trackUsage('gpt-4', 500);
+    it('should track customer usage when provided', () => {
+      tokenManager.recordUsage(
+        LLMProvider.OPENAI,
+        'gpt-4',
+        { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+        0.01,
+        { customerId: 'cust-123' }
+      );
 
-      expect(tokenManager.hasBudget('gpt-4', 400)).toBe(true);
-      expect(tokenManager.hasBudget('gpt-4', 600)).toBe(false);
-    });
-
-    it('should prevent usage beyond budget', () => {
-      tokenManager.setBudget('gpt-4', 100);
-
-      expect(() => {
-        tokenManager.trackUsage('gpt-4', 150);
-      }).toThrow('Budget exceeded');
-    });
-
-    it('should reset budget', () => {
-      tokenManager.setBudget('gpt-4', 1000);
-      tokenManager.trackUsage('gpt-4', 500);
-      tokenManager.resetBudget('gpt-4');
-
-      const remaining = tokenManager.getRemainingBudget('gpt-4');
-      expect(remaining).toBe(1000);
-    });
-  });
-
-  describe('Cost Calculation', () => {
-    it('should calculate cost for GPT-4', () => {
-      const inputTokens = 1000;
-      const outputTokens = 500;
-
-      const cost = tokenManager.calculateCost('gpt-4', inputTokens, outputTokens);
-
-      expect(cost).toBeGreaterThan(0);
-      expect(typeof cost).toBe('number');
-    });
-
-    it('should calculate cost for GPT-3.5', () => {
-      const inputTokens = 1000;
-      const outputTokens = 500;
-
-      const cost = tokenManager.calculateCost('gpt-3.5-turbo', inputTokens, outputTokens);
-
-      expect(cost).toBeGreaterThan(0);
-      // GPT-3.5 should be cheaper than GPT-4
-      const gpt4Cost = tokenManager.calculateCost('gpt-4', inputTokens, outputTokens);
-      expect(cost).toBeLessThan(gpt4Cost);
-    });
-
-    it('should handle zero tokens', () => {
-      const cost = tokenManager.calculateCost('gpt-4', 0, 0);
-      expect(cost).toBe(0);
+      const customerMetrics = tokenManager.getCustomerUsage('cust-123');
+      expect(customerMetrics.totalTokens).toBe(150);
     });
   });
 
-  describe('Usage Statistics', () => {
-    it('should track total usage', () => {
-      tokenManager.trackUsage('gpt-4', 100);
-      tokenManager.trackUsage('gpt-4', 200);
-      tokenManager.trackUsage('gpt-3.5-turbo', 150);
-
-      const stats = tokenManager.getUsageStats();
-
-      expect(stats['gpt-4']).toBe(300);
-      expect(stats['gpt-3.5-turbo']).toBe(150);
+  describe('checkBudgetLimit', () => {
+    it('should return allowed when under budget', () => {
+      const result = tokenManager.checkBudgetLimit(10);
+      expect(result.allowed).toBe(true);
     });
 
-    it('should get total tokens used', () => {
-      tokenManager.trackUsage('gpt-4', 100);
-      tokenManager.trackUsage('gpt-3.5-turbo', 200);
+    it('should return not allowed when exceeding daily limit', () => {
+      // Record usage up to daily limit
+      tokenManager.recordUsage(
+        LLMProvider.OPENAI,
+        'gpt-4',
+        { promptTokens: 1000, completionTokens: 500, totalTokens: 1500 },
+        95 // Close to daily limit of 100
+      );
 
-      const total = tokenManager.getTotalTokensUsed();
-      expect(total).toBe(300);
-    });
-
-    it('should get total cost', () => {
-      tokenManager.trackUsage('gpt-4', 1000, 500);
-      tokenManager.trackUsage('gpt-3.5-turbo', 1000, 500);
-
-      const totalCost = tokenManager.getTotalCost();
-      expect(totalCost).toBeGreaterThan(0);
+      const result = tokenManager.checkBudgetLimit(10);
+      expect(result.allowed).toBe(false);
+      expect(result.reason?.toLowerCase()).toContain('daily');
     });
   });
 
-  describe('Token Estimation', () => {
-    it('should estimate tokens for prompt', () => {
-      const prompt = 'Generate a summary of this article';
-      const estimate = tokenManager.estimatePromptTokens(prompt);
+  describe('getBudgetStatus', () => {
+    it('should return current budget status', () => {
+      tokenManager.recordUsage(
+        LLMProvider.OPENAI,
+        'gpt-4',
+        { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+        10
+      );
 
-      expect(estimate).toBeGreaterThan(0);
+      const status = tokenManager.getBudgetStatus();
+      
+      expect(status.daily.used).toBe(10);
+      expect(status.daily.remaining).toBe(90);
+      expect(status.daily.percentage).toBe(10);
     });
+  });
 
-    it('should estimate completion tokens', () => {
-      const maxTokens = 500;
-      const estimate = tokenManager.estimateCompletionTokens(maxTokens);
+  describe('getUsageByProvider', () => {
+    it('should return usage grouped by provider', () => {
+      tokenManager.recordUsage(
+        LLMProvider.OPENAI,
+        'gpt-4',
+        { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+        0.01
+      );
+      tokenManager.recordUsage(
+        LLMProvider.ANTHROPIC,
+        'claude-3',
+        { promptTokens: 200, completionTokens: 100, totalTokens: 300 },
+        0.02
+      );
 
-      expect(estimate).toBeLessThanOrEqual(maxTokens);
+      const byProvider = tokenManager.getUsageByProvider();
+      
+      expect(byProvider.get(LLMProvider.OPENAI)?.totalTokens).toBe(150);
+      expect(byProvider.get(LLMProvider.ANTHROPIC)?.totalTokens).toBe(300);
     });
+  });
 
-    it('should estimate total cost for request', () => {
-      const prompt = 'What is AI?';
-      const maxTokens = 500;
+  describe('getUsageByModel', () => {
+    it('should return usage grouped by model', () => {
+      tokenManager.recordUsage(
+        LLMProvider.OPENAI,
+        'gpt-4',
+        { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+        0.03
+      );
+      tokenManager.recordUsage(
+        LLMProvider.OPENAI,
+        'gpt-3.5-turbo',
+        { promptTokens: 200, completionTokens: 100, totalTokens: 300 },
+        0.01
+      );
 
-      const estimatedCost = tokenManager.estimateRequestCost('gpt-4', prompt, maxTokens);
+      const byModel = tokenManager.getUsageByModel();
+      
+      expect(byModel.get('gpt-4')?.totalTokens).toBe(150);
+      expect(byModel.get('gpt-3.5-turbo')?.totalTokens).toBe(300);
+    });
+  });
 
-      expect(estimatedCost).toBeGreaterThan(0);
+  describe('getDailyUsage', () => {
+    it('should return daily usage', () => {
+      tokenManager.recordUsage(
+        LLMProvider.OPENAI,
+        'gpt-4',
+        { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+        0.01
+      );
+
+      const daily = tokenManager.getDailyUsage();
+      expect(daily).toBe(0.01);
+    });
+  });
+
+  describe('exportUsageData', () => {
+    it('should export all usage records', () => {
+      tokenManager.recordUsage(
+        LLMProvider.OPENAI,
+        'gpt-4',
+        { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+        0.01
+      );
+
+      const data = tokenManager.exportUsageData();
+      expect(data.length).toBe(1);
+      expect(data[0].model).toBe('gpt-4');
     });
   });
 });

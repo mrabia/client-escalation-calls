@@ -14,9 +14,13 @@ database/
 │   ├── 003_create_contact_attempts_and_templates.sql
 │   ├── 004_create_audit_and_compliance.sql
 │   ├── 005_create_system_metrics_and_views.sql
+│   ├── 006_create_llm_usage_tracking.sql
+│   ├── 007_create_users_and_sessions.sql
+│   ├── 008_create_email_delivery_tracking.sql
 │   └── run_all_migrations.sql
 ├── seeds/              # Test and development data
-│   └── 001_seed_test_data.sql
+│   ├── 001_seed_test_data.sql
+│   └── 002_seed_production_defaults.sql
 └── README.md           # This file
 ```
 
@@ -221,11 +225,15 @@ Automatically updates `updated_at` timestamp on record modification for all rele
 ## Migration Strategy
 
 Migrations are numbered sequentially:
+
 1. **001**: Core tables (customers, profiles, payments, agents)
 2. **002**: Campaigns and tasks
 3. **003**: Contact attempts and templates
 4. **004**: Audit logs and compliance
 5. **005**: System metrics and views
+6. **006**: LLM usage tracking and budgets
+7. **007**: Users, sessions, and authentication
+8. **008**: Email delivery tracking and analytics
 
 ## Best Practices
 

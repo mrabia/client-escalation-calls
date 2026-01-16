@@ -3,7 +3,7 @@
  * Implements TOTP (Time-based One-Time Password) for two-factor authentication
  */
 
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { createClient, RedisClientType } from 'redis';
 import { config } from '@/config';
 import { createLogger, Logger } from '@/utils/logger';

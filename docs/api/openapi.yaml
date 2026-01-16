@@ -1,0 +1,1971 @@
+openapi: 3.1.0
+info:
+  title: Client Escalation Calls API
+  description: |
+    Agentic AI Payment Collection System API
+    
+    This API provides endpoints for managing customers, payment records, 
+    collection campaigns, tasks, and AI agents for automated debt collection.
+    
+    ## Authentication
+    Most endpoints require Bearer token authentication. Obtain a token via the `/auth/login` endpoint.
+    
+    ## Rate Limiting
+    API requests are rate-limited to 100 requests per 15-minute window per IP.
+    
+    ## Error Handling
+    All errors follow a consistent format with `error` and optional `details` fields.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+  - url: https://api.example.com/api/v1
+    description: Production server
+
+tags:
+  - name: Health
+    description: Health check and system status
+  - name: Authentication
+    description: User authentication and session management
+  - name: Customers
+    description: Customer management operations
+  - name: Payments
+    description: Payment record management
+  - name: Campaigns
+    description: Collection campaign management
+  - name: Tasks
+    description: Agent task management
+  - name: Agents
+    description: AI agent management
+  - name: Analytics
+    description: Dashboard and reporting
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ============================================================================
+  # Health & Info
+  # ============================================================================
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Returns the health status of the API and its dependencies
+      security: []
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: System is degraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /:
+    get:
+      tags: [Health]
+      summary: API info
+      description: Returns basic API information and available endpoints
+      security: []
+      responses:
+        '200':
+          description: API information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: "Client Escalation Calls API"
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  endpoints:
+                    type: object
+
+  /stats:
+    get:
+      tags: [Analytics]
+      summary: Dashboard statistics
+      description: Returns summary statistics for the dashboard
+      responses:
+        '200':
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStats'
+
+  # ============================================================================
+  # Authentication
+  # ============================================================================
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login
+      description: Authenticate user and receive access/refresh tokens
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      description: Get a new access token using a refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+                  description: Valid refresh token
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Logout
+      description: Invalidate current session
+      responses:
+        '200':
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/me:
+    get:
+      tags: [Authentication]
+      summary: Get current user
+      description: Returns the currently authenticated user's info
+      responses:
+        '200':
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUserResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/sessions:
+    get:
+      tags: [Authentication]
+      summary: Get active sessions
+      description: Returns all active sessions for the current user
+      responses:
+        '200':
+          description: Active sessions list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      sessions:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Session'
+
+  /auth/revoke-all-sessions:
+    post:
+      tags: [Authentication]
+      summary: Revoke all sessions
+      description: Force logout from all devices
+      responses:
+        '200':
+          description: All sessions revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+
+  # ============================================================================
+  # Customers
+  # ============================================================================
+  /customers:
+    get:
+      tags: [Customers]
+      summary: List customers
+      description: Get paginated list of customers with optional filtering
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by company name, contact name, or email
+        - name: riskLevel
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, critical]
+          description: Filter by risk level
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [companyName, createdAt, updatedAt]
+            default: createdAt
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: Customer list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CustomerSummary'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    post:
+      tags: [Customers]
+      summary: Create customer
+      description: Create a new customer record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomerRequest'
+      responses:
+        '201':
+          description: Customer created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Customer'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Customer with email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /customers/{id}:
+    get:
+      tags: [Customers]
+      summary: Get customer
+      description: Get a single customer by ID with profile data
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Customer details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/CustomerDetail'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      tags: [Customers]
+      summary: Update customer
+      description: Update an existing customer
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCustomerRequest'
+      responses:
+        '200':
+          description: Customer updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Customer'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    delete:
+      tags: [Customers]
+      summary: Delete customer
+      description: Delete a customer and all associated data
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '204':
+          description: Customer deleted
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /customers/{id}/payments:
+    get:
+      tags: [Customers]
+      summary: Get customer payments
+      description: Get all payment records for a customer
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Customer payment records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PaymentSummary'
+
+  /customers/{id}/campaigns:
+    get:
+      tags: [Customers]
+      summary: Get customer campaigns
+      description: Get all campaigns for a customer
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Customer campaigns
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CampaignSummary'
+
+  # ============================================================================
+  # Payments
+  # ============================================================================
+  /payments:
+    get:
+      tags: [Payments]
+      summary: List payments
+      description: Get paginated list of payment records
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: customerId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, overdue, paid, partial, cancelled]
+        - name: overdueOnly
+          in: query
+          schema:
+            type: boolean
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [dueDate, amount, createdAt]
+            default: dueDate
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+      responses:
+        '200':
+          description: Payment records list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Payment'
+
+    post:
+      tags: [Payments]
+      summary: Create payment record
+      description: Create a new payment record (invoice)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+      responses:
+        '201':
+          description: Payment record created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Payment'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /payments/overdue:
+    get:
+      tags: [Payments]
+      summary: Get overdue payments
+      description: Get all overdue payments with customer details and summary
+      responses:
+        '200':
+          description: Overdue payments with summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OverduePayment'
+                  summary:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                      totalAmount:
+                        type: number
+
+  /payments/{id}:
+    get:
+      tags: [Payments]
+      summary: Get payment
+      description: Get a single payment record by ID
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Payment record details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/PaymentDetail'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      tags: [Payments]
+      summary: Update payment
+      description: Update a payment record
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePaymentRequest'
+      responses:
+        '200':
+          description: Payment updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Payment'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  # ============================================================================
+  # Campaigns
+  # ============================================================================
+  /campaigns:
+    get:
+      tags: [Campaigns]
+      summary: List campaigns
+      description: Get paginated list of collection campaigns
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, active, paused, completed, cancelled]
+        - name: customerId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [name, createdAt, startDate]
+            default: createdAt
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: Campaign list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CampaignSummary'
+
+    post:
+      tags: [Campaigns]
+      summary: Create campaign
+      description: Create a new collection campaign
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCampaignRequest'
+      responses:
+        '201':
+          description: Campaign created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Campaign'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /campaigns/{id}:
+    get:
+      tags: [Campaigns]
+      summary: Get campaign
+      description: Get a single campaign by ID with full details
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Campaign details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/CampaignDetail'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      tags: [Campaigns]
+      summary: Update campaign
+      description: Update an existing campaign
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCampaignRequest'
+      responses:
+        '200':
+          description: Campaign updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Campaign'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    delete:
+      tags: [Campaigns]
+      summary: Delete campaign
+      description: Delete a campaign
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '204':
+          description: Campaign deleted
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /campaigns/{id}/pause:
+    put:
+      tags: [Campaigns]
+      summary: Pause campaign
+      description: Pause an active campaign
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Campaign paused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /campaigns/{id}/resume:
+    put:
+      tags: [Campaigns]
+      summary: Resume campaign
+      description: Resume a paused campaign
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Campaign resumed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessage'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  # ============================================================================
+  # Tasks
+  # ============================================================================
+  /tasks:
+    get:
+      tags: [Tasks]
+      summary: List tasks
+      description: Get paginated list of agent tasks
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, assigned, in_progress, completed, failed, cancelled]
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [send_email, make_call, send_sms, research_customer, escalate, follow_up]
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, urgent]
+        - name: customerId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: campaignId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: assignedAgentId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [createdAt, dueAt, priority]
+            default: createdAt
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: Task list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TaskSummary'
+
+    post:
+      tags: [Tasks]
+      summary: Create task
+      description: Create a new agent task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /tasks/{id}:
+    get:
+      tags: [Tasks]
+      summary: Get task
+      description: Get a single task by ID with full details
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/TaskDetail'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      tags: [Tasks]
+      summary: Update task
+      description: Update a task (status, priority, assignment)
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+      responses:
+        '200':
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Task'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  # ============================================================================
+  # Agents
+  # ============================================================================
+  /agents:
+    get:
+      tags: [Agents]
+      summary: List agents
+      description: Get paginated list of AI agents
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [email, phone, sms, research]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [idle, active, busy, error, offline]
+      responses:
+        '200':
+          description: Agent list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Agent'
+
+    post:
+      tags: [Agents]
+      summary: Create agent
+      description: Create a new AI agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAgentRequest'
+      responses:
+        '201':
+          description: Agent created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Agent'
+
+  /agents/{id}:
+    get:
+      tags: [Agents]
+      summary: Get agent
+      description: Get a single agent by ID
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Agent details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Agent'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      tags: [Agents]
+      summary: Update agent
+      description: Update agent configuration or status
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAgentRequest'
+      responses:
+        '200':
+          description: Agent updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Agent'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /agents/{id}/metrics:
+    get:
+      tags: [Agents]
+      summary: Get agent metrics
+      description: Get performance metrics for an agent
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Agent performance metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/AgentMetrics'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from /auth/login
+
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Resource UUID
+
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number
+
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Items per page
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+
+    UnauthorizedError:
+      description: Unauthorized - invalid or missing token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    # ============================================================================
+    # Common Schemas
+    # ============================================================================
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+
+    ValidationError:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Validation error"
+        details:
+          type: string
+          description: Specific validation failure message
+
+    SuccessMessage:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+
+    PaginatedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+            limit:
+              type: integer
+            totalCount:
+              type: integer
+            totalPages:
+              type: integer
+
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zipCode:
+          type: string
+        country:
+          type: string
+
+    # ============================================================================
+    # Health & Stats
+    # ============================================================================
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, error]
+        timestamp:
+          type: string
+          format: date-time
+        uptime:
+          type: number
+        services:
+          type: object
+          properties:
+            database:
+              type: string
+            redis:
+              type: string
+
+    DashboardStats:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            customers:
+              type: object
+              properties:
+                total:
+                  type: integer
+            campaigns:
+              type: object
+              properties:
+                total:
+                  type: integer
+                active:
+                  type: integer
+            tasks:
+              type: object
+              properties:
+                total:
+                  type: integer
+                pending:
+                  type: integer
+                completed:
+                  type: integer
+            agents:
+              type: object
+              properties:
+                total:
+                  type: integer
+                active:
+                  type: integer
+            payments:
+              type: object
+              properties:
+                total:
+                  type: integer
+                overdueCount:
+                  type: integer
+                overdueAmount:
+                  type: number
+
+    # ============================================================================
+    # Authentication
+    # ============================================================================
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        password:
+          type: string
+          minLength: 8
+          example: "securepassword123"
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+            refreshToken:
+              type: string
+            expiresIn:
+              type: integer
+              description: Token expiry in seconds
+            user:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                email:
+                  type: string
+                  format: email
+                role:
+                  type: string
+                  enum: [admin, manager, agent, viewer]
+
+    TokenResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+            expiresIn:
+              type: integer
+
+    CurrentUserResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            userId:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+            role:
+              type: string
+
+    Session:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        userAgent:
+          type: string
+        ipAddress:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+
+    # ============================================================================
+    # Customers
+    # ============================================================================
+    CreateCustomerRequest:
+      type: object
+      required: [companyName, contactName, email]
+      properties:
+        companyName:
+          type: string
+          maxLength: 255
+        contactName:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          pattern: '^\+?[1-9]\d{1,14}$'
+        mobile:
+          type: string
+          pattern: '^\+?[1-9]\d{1,14}$'
+        address:
+          $ref: '#/components/schemas/Address'
+        preferredContactMethod:
+          type: string
+          enum: [email, phone, sms]
+          default: email
+        tags:
+          type: array
+          items:
+            type: string
+
+    UpdateCustomerRequest:
+      type: object
+      properties:
+        companyName:
+          type: string
+          maxLength: 255
+        contactName:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        mobile:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
+        preferredContactMethod:
+          type: string
+          enum: [email, phone, sms]
+        tags:
+          type: array
+          items:
+            type: string
+
+    CustomerSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        companyName:
+          type: string
+        contactName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        riskLevel:
+          type: string
+          enum: [low, medium, high, critical]
+        responseRate:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+
+    Customer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        companyName:
+          type: string
+        contactName:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        mobile:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
+        preferredContactMethod:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CustomerDetail:
+      allOf:
+        - $ref: '#/components/schemas/Customer'
+        - type: object
+          properties:
+            profile:
+              type: object
+              properties:
+                riskLevel:
+                  type: string
+                  enum: [low, medium, high, critical]
+                paymentBehavior:
+                  type: string
+                responseRate:
+                  type: number
+                averagePaymentDelay:
+                  type: integer
+                notes:
+                  type: array
+                  items:
+                    type: string
+
+    # ============================================================================
+    # Payments
+    # ============================================================================
+    CreatePaymentRequest:
+      type: object
+      required: [customerId, amount, dueDate, invoiceNumber]
+      properties:
+        customerId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          minimum: 0.01
+        currency:
+          type: string
+          default: USD
+          minLength: 3
+          maxLength: 3
+        dueDate:
+          type: string
+          format: date
+        invoiceNumber:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+
+    UpdatePaymentRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+          minimum: 0.01
+        dueDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [pending, overdue, paid, partial, cancelled]
+        paidDate:
+          type: string
+          format: date
+        paidAmount:
+          type: number
+        description:
+          type: string
+          maxLength: 500
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+          format: uuid
+        customerName:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        dueDate:
+          type: string
+          format: date
+        paidDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [pending, overdue, paid, partial, cancelled]
+        invoiceNumber:
+          type: string
+        description:
+          type: string
+        daysOverdue:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaymentSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+        currency:
+          type: string
+        dueDate:
+          type: string
+          format: date
+        status:
+          type: string
+        invoiceNumber:
+          type: string
+
+    PaymentDetail:
+      allOf:
+        - $ref: '#/components/schemas/Payment'
+        - type: object
+          properties:
+            customer:
+              type: object
+              properties:
+                companyName:
+                  type: string
+                contactName:
+                  type: string
+                email:
+                  type: string
+
+    OverduePayment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+          format: uuid
+        customer:
+          type: object
+          properties:
+            companyName:
+              type: string
+            contactName:
+              type: string
+            email:
+              type: string
+            phone:
+              type: string
+            riskLevel:
+              type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        dueDate:
+          type: string
+          format: date
+        invoiceNumber:
+          type: string
+        daysOverdue:
+          type: integer
+
+    # ============================================================================
+    # Campaigns
+    # ============================================================================
+    EscalationStep:
+      type: object
+      required: [stepNumber, channel, template]
+      properties:
+        stepNumber:
+          type: integer
+          minimum: 1
+        channel:
+          type: string
+          enum: [email, phone, sms]
+        template:
+          type: string
+        delayHours:
+          type: integer
+          minimum: 0
+          default: 0
+        maxAttempts:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 3
+
+    CampaignConfig:
+      type: object
+      properties:
+        maxDailyContacts:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 3
+        cooldownPeriod:
+          type: integer
+          minimum: 1
+          default: 4
+        respectDoNotContact:
+          type: boolean
+          default: true
+        timezone:
+          type: string
+          default: "America/New_York"
+
+    CreateCampaignRequest:
+      type: object
+      required: [name, customerId, escalationSteps]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1000
+        customerId:
+          type: string
+          format: uuid
+        paymentRecordId:
+          type: string
+          format: uuid
+        escalationSteps:
+          type: array
+          items:
+            $ref: '#/components/schemas/EscalationStep'
+          minItems: 1
+        config:
+          $ref: '#/components/schemas/CampaignConfig'
+        startDate:
+          type: string
+          format: date-time
+
+    UpdateCampaignRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 1000
+        status:
+          type: string
+          enum: [draft, active, paused, completed, cancelled]
+        escalationSteps:
+          type: array
+          items:
+            $ref: '#/components/schemas/EscalationStep'
+        config:
+          $ref: '#/components/schemas/CampaignConfig'
+
+    CampaignSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        customerId:
+          type: string
+          format: uuid
+        customerName:
+          type: string
+        status:
+          type: string
+          enum: [draft, active, paused, completed, cancelled]
+        currentStep:
+          type: integer
+        startDate:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    Campaign:
+      allOf:
+        - $ref: '#/components/schemas/CampaignSummary'
+        - type: object
+          properties:
+            description:
+              type: string
+            escalationSteps:
+              type: array
+              items:
+                $ref: '#/components/schemas/EscalationStep'
+            config:
+              $ref: '#/components/schemas/CampaignConfig'
+            results:
+              type: object
+            endDate:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    CampaignDetail:
+      allOf:
+        - $ref: '#/components/schemas/Campaign'
+        - type: object
+          properties:
+            customer:
+              type: object
+              properties:
+                name:
+                  type: string
+                contactName:
+                  type: string
+                email:
+                  type: string
+            pausedUntil:
+              type: string
+              format: date-time
+
+    # ============================================================================
+    # Tasks
+    # ============================================================================
+    TaskContext:
+      type: object
+      properties:
+        paymentRecordId:
+          type: string
+          format: uuid
+        messageTemplate:
+          type: string
+        metadata:
+          type: object
+
+    CreateTaskRequest:
+      type: object
+      required: [type, customerId, campaignId]
+      properties:
+        type:
+          type: string
+          enum: [send_email, make_call, send_sms, research_customer, escalate, follow_up]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+          default: medium
+        customerId:
+          type: string
+          format: uuid
+        campaignId:
+          type: string
+          format: uuid
+        dueAt:
+          type: string
+          format: date-time
+        maxAttempts:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 3
+        context:
+          $ref: '#/components/schemas/TaskContext'
+
+    UpdateTaskRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, assigned, in_progress, completed, failed, cancelled]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        assignedAgentId:
+          type: string
+          format: uuid
+          nullable: true
+        dueAt:
+          type: string
+          format: date-time
+
+    TaskSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        priority:
+          type: string
+        status:
+          type: string
+        customerId:
+          type: string
+          format: uuid
+        customerName:
+          type: string
+        campaignId:
+          type: string
+          format: uuid
+        campaignName:
+          type: string
+        assignedAgentId:
+          type: string
+          format: uuid
+        agentType:
+          type: string
+        attempts:
+          type: integer
+        maxAttempts:
+          type: integer
+        dueAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    Task:
+      allOf:
+        - $ref: '#/components/schemas/TaskSummary'
+        - type: object
+          properties:
+            context:
+              type: object
+            completedAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    TaskDetail:
+      allOf:
+        - $ref: '#/components/schemas/Task'
+        - type: object
+          properties:
+            customer:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                phone:
+                  type: string
+
+    # ============================================================================
+    # Agents
+    # ============================================================================
+    AgentConfig:
+      type: object
+      properties:
+        maxConcurrentTasks:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 5
+        workingHours:
+          type: object
+          properties:
+            start:
+              type: string
+              pattern: '^\d{2}:\d{2}$'
+              default: "09:00"
+            end:
+              type: string
+              pattern: '^\d{2}:\d{2}$'
+              default: "17:00"
+        timezone:
+          type: string
+          default: "America/New_York"
+        skills:
+          type: array
+          items:
+            type: string
+
+    CreateAgentRequest:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [email, phone, sms, research]
+        capabilities:
+          type: array
+          items:
+            type: string
+        config:
+          $ref: '#/components/schemas/AgentConfig'
+
+    UpdateAgentRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [idle, active, busy, error, offline]
+        capabilities:
+          type: array
+          items:
+            type: string
+        config:
+          $ref: '#/components/schemas/AgentConfig'
+
+    Agent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [email, phone, sms, research]
+        status:
+          type: string
+          enum: [idle, active, busy, error, offline]
+        capabilities:
+          type: array
+          items:
+            type: string
+        currentTasks:
+          type: integer
+        performance:
+          type: object
+        config:
+          $ref: '#/components/schemas/AgentConfig'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AgentMetrics:
+      type: object
+      properties:
+        agentId:
+          type: string
+          format: uuid
+        tasksCompleted:
+          type: integer
+        tasksSuccessful:
+          type: integer
+        successRate:
+          type: number
+        averageResponseTime:
+          type: number
+        totalContactAttempts:
+          type: integer
+        successfulContacts:
+          type: integer
+        paymentsCollected:
+          type: integer
+        amountCollected:
+          type: number

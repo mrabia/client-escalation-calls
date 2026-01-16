@@ -84,7 +84,7 @@ export class PIIMasker {
       patterns.push({
         name: 'phone',
         // US phone formats: (123) 456-7890, 123-456-7890, 1234567890, +1-123-456-7890
-        pattern: /(?:\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}\b/g,
+        pattern: /(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
         replacement: (match: string) => this.maskPhone(match)
       });
     }
@@ -110,8 +110,8 @@ export class PIIMasker {
     if (this.config.patterns.ipAddress) {
       patterns.push({
         name: 'ipAddress',
-        // IPv4 addresses
-        pattern: /\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g,
+        // IPv4 addresses (simplified pattern - validation done in maskIP)
+        pattern: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g,
         replacement: (match: string) => this.maskIP(match)
       });
     }

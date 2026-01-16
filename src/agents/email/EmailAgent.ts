@@ -5,6 +5,11 @@ import { DatabaseService } from '@/core/services/database';
 import { RedisService } from '@/core/services/redis';
 import { MessageQueueService } from '@/core/services/messageQueue';
 import { config as appConfig } from '@/config';
+import { 
+  getEmailDeliveryService, 
+  EmailDeliveryService,
+  DeliveryStatus 
+} from '@/services/email';
 import {
   Task,
   TaskStatus,

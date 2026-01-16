@@ -10,6 +10,16 @@ export { riskAssessmentService, RiskAssessmentService } from './RiskAssessmentSe
 export { promptTemplateManager, PromptTemplateManager } from './PromptTemplateManager';
 export { tokenManager, TokenManager } from './TokenManager';
 
+// Multi-provider service
+export { LLMProviderService, getLLMProviderService, LLMProvider } from './LLMProviderService';
+export type { 
+  ChatMessage, 
+  CompletionOptions, 
+  CompletionResponse, 
+  EmbeddingResponse,
+  ProviderConfig 
+} from './LLMProviderService';
+
 // Export adapters
 export { BaseAdapter } from './adapters/BaseAdapter';
 export { OpenAIAdapter } from './adapters/OpenAIAdapter';

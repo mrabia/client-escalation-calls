@@ -3,10 +3,11 @@
  * Handles secure password reset flow with email verification
  */
 
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { createClient, RedisClientType } from 'redis';
 import { config } from '@/config';
 import { createLogger, Logger } from '@/utils/logger';
+import { DatabaseService } from '@/core/services/database';
 import { AuthService } from './AuthService';
 
 /**
@@ -44,6 +45,8 @@ export class PasswordResetService {
   private readonly redis: RedisClientType;
   private readonly logger: Logger;
   private readonly authService: AuthService;
+  private readonly db: DatabaseService;
+  private redisConnectPromise: Promise<void> | null = null;
   
   // Configuration
   private readonly tokenExpiryMinutes: number = 60; // 1 hour
@@ -51,13 +54,13 @@ export class PasswordResetService {
   private readonly tokenLength: number = 32;
 
   constructor(authService?: AuthService) {
-    this.redis = createClient({ url: config.redis.url });
-    this.redis.connect().catch(err => {
-      this.logger?.error('Failed to connect to Redis for PasswordReset', err);
-    });
-    
     this.logger = createLogger('PasswordResetService');
+    this.redis = createClient({ url: config.redis.url });
+    this.redis.on('error', err => {
+      this.logger.error('Redis error in PasswordResetService', { err });
+    });
     this.authService = authService || new AuthService();
+    this.db = new DatabaseService();
   }
 
   /**
@@ -131,6 +134,7 @@ export class PasswordResetService {
    */
   async verifyResetToken(token: string): Promise<{ userId: string; email: string } | null> {
     try {
+      await this.ensureRedisConnected();
       const hashedToken = this.hashToken(token);
       const requestData = await this.redis.get(`reset:token:${hashedToken}`);
 
@@ -319,10 +323,28 @@ This is an automated message from ${config.app.name}.
     return crypto.createHash('sha256').update(token).digest('hex');
   }
 
+  private async ensureRedisConnected(): Promise<void> {
+    if (this.redis.isOpen) {
+      return;
+    }
+
+    this.redisConnectPromise ??= this.redis
+      .connect()
+      .then(() => undefined)
+      .catch(err => {
+        this.logger.error('Failed to connect to Redis for PasswordResetService', { err });
+        this.redisConnectPromise = null;
+        throw err;
+      });
+
+    await this.redisConnectPromise;
+  }
+
   /**
    * Store reset request in Redis
    */
   private async storeResetRequest(request: PasswordResetRequest): Promise<void> {
+    await this.ensureRedisConnected();
     const ttl = this.tokenExpiryMinutes * 60;
     
     // Store by hashed token
@@ -341,6 +363,7 @@ This is an automated message from ${config.app.name}.
    * Delete reset token
    */
   private async deleteResetToken(hashedToken: string): Promise<void> {
+    await this.ensureRedisConnected();
     await this.redis.del(`reset:token:${hashedToken}`);
   }
 
@@ -349,6 +372,7 @@ This is an automated message from ${config.app.name}.
    */
   private async invalidatePreviousTokens(userId: string, currentToken: string): Promise<void> {
     try {
+      await this.ensureRedisConnected();
       const tokens = await this.redis.sMembers(`reset:user:${userId}`);
       const currentHashed = this.hashToken(currentToken);
       
@@ -366,6 +390,7 @@ This is an automated message from ${config.app.name}.
    * Check rate limiting for reset requests
    */
   private async checkRateLimit(email: string): Promise<boolean> {
+    await this.ensureRedisConnected();
     const key = `reset:ratelimit:${email.toLowerCase()}`;
     const attempts = await this.redis.get(key);
     
@@ -376,6 +401,7 @@ This is an automated message from ${config.app.name}.
    * Record reset attempt for rate limiting
    */
   private async recordResetAttempt(email: string): Promise<void> {
+    await this.ensureRedisConnected();
     const key = `reset:ratelimit:${email.toLowerCase()}`;
     await this.redis.incr(key);
     await this.redis.expire(key, 3600); // 1 hour window
@@ -397,7 +423,7 @@ This is an automated message from ${config.app.name}.
       return { valid: false, message: 'Password must contain at least one lowercase letter' };
     }
 
-    if (!/[0-9]/.test(password)) {
+    if (!/\d/.test(password)) {
       return { valid: false, message: 'Password must contain at least one number' };
     }
 
@@ -412,28 +438,45 @@ This is an automated message from ${config.app.name}.
    * Get user ID by email (placeholder - should query database)
    */
   private async getUserIdByEmail(email: string): Promise<string | null> {
-    // TODO: Implement actual database lookup
-    // This is a placeholder that should be replaced with actual database query
-    // For now, return null to indicate user lookup should be implemented
-    this.logger.debug('getUserIdByEmail called - needs database implementation', { email });
-    return null;
+    try {
+      await this.db.initialize();
+      const result = await this.db.query<{ id: string }>(
+        'SELECT id FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1',
+        [email]
+      );
+
+      return result.rows[0]?.id ?? null;
+    } catch (error) {
+      this.logger.error('Failed to lookup user by email for password reset', { email, error });
+      return null;
+    }
   }
 
   /**
    * Update user password in database (placeholder)
    */
   private async updateUserPassword(userId: string, hashedPassword: string): Promise<boolean> {
-    // TODO: Implement actual database update
-    // This is a placeholder that should be replaced with actual database query
-    this.logger.debug('updateUserPassword called - needs database implementation', { userId });
-    return false;
+    try {
+      await this.db.initialize();
+      const result = await this.db.query(
+        'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+        [hashedPassword, userId]
+      );
+
+      return (result.rowCount ?? 0) > 0;
+    } catch (error) {
+      this.logger.error('Failed to update user password during password reset', { userId, error });
+      return false;
+    }
   }
 
   /**
    * Close Redis connection
    */
   async close(): Promise<void> {
-    await this.redis.quit();
+    if (this.redis.isOpen) {
+      await this.redis.quit();
+    }
   }
 }
 
@@ -441,8 +484,6 @@ This is an automated message from ${config.app.name}.
 let passwordResetServiceInstance: PasswordResetService | null = null;
 
 export function getPasswordResetService(authService?: AuthService): PasswordResetService {
-  if (!passwordResetServiceInstance) {
-    passwordResetServiceInstance = new PasswordResetService(authService);
-  }
+  passwordResetServiceInstance ??= new PasswordResetService(authService);
   return passwordResetServiceInstance;
 }
