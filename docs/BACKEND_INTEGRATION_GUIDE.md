@@ -1,8 +1,10 @@
 # Guide d'Intégration Backend-Frontend MOJAVOX
 
-**Version:** 1.0  
-**Date:** 27 Janvier 2026  
+**Version:** 2.0  
+**Date:** 28 Janvier 2026  
 **Auteur:** Manus AI  
+
+> **📌 NOTE IMPORTANTE:** Ce guide est accompagné du fichier `WINDSURF_AI_PROMPT.md` qui contient le prompt complet et détaillé pour l'Agent AI Windsurf. Utilisez ce prompt pour une implémentation automatisée.  
 
 ---
 
